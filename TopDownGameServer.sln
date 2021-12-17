@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31829.152
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TopDownGameServer", "TopDownGameServer\TopDownGameServer.csproj", "{78313739-95DE-4FA2-A363-53D9742C4912}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TopDownGrpcGameServer", "TopDownGrpcGameServer\TopDownGrpcGameServer.csproj", "{9737A4B7-EFA4-4CAB-A853-175FF84966EE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{78313739-95DE-4FA2-A363-53D9742C4912}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78313739-95DE-4FA2-A363-53D9742C4912}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78313739-95DE-4FA2-A363-53D9742C4912}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78313739-95DE-4FA2-A363-53D9742C4912}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9737A4B7-EFA4-4CAB-A853-175FF84966EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9737A4B7-EFA4-4CAB-A853-175FF84966EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9737A4B7-EFA4-4CAB-A853-175FF84966EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9737A4B7-EFA4-4CAB-A853-175FF84966EE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {879BC59F-E9E9-44E3-ACF4-D19C76B8EB4F}
+	EndGlobalSection
+EndGlobal
