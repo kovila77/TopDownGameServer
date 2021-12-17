@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using TopDownGameServer;
 
 namespace TopDownGrpcGameServer
 {
@@ -13,6 +14,7 @@ namespace TopDownGrpcGameServer
     {
         public static void Main(string[] args)
         {
+            Logic.Initialize();
             CreateHostBuilder(args).Build().Run();
         }
 

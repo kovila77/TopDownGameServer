@@ -2,20 +2,34 @@ syntax = "proto3";
 
 option csharp_namespace = "TopDownGrpcGameServer";
 
-package greet;
+import "google/protobuf/empty.proto";
+package topdown;
+
 
 // The greeting service definition.
-service Greeter {
+service TopDownServer {
   // Sends a greeting
-  rpc SayHello (stream HelloRequest) returns (HelloReply);
+  rpc UpdateUserState (stream ControlStateRequest) returns (google.protobuf.Empty);
+  rpc RetrieveEntites (google.protobuf.Empty) returns (VectorsResponce);
 }
 
 // The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
+message ControlStateRequest {
+    bool left = 1;
+    bool right = 2;
+    bool up = 3;
+    bool down = 4;
+    float globalMousePosX = 5;
+    float globalMousePosY = 6;
+    bool leftMouse = 7;
+    bool rightMouse = 8;
 }
 
-// The response message containing the greetings.
-message HelloReply {
-  string message = 1;
+message VectorsResponce {
+    repeated Vector vectors = 1;
+}
+
+message Vector {
+    float X = 2;
+    float Y = 3;
 }
