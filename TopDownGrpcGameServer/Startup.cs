@@ -31,7 +31,7 @@ namespace TopDownGrpcGameServer
 
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapGrpcService<GreeterService>();
+                endpoints.MapGrpcService<TopDownServerService>();
 
                 endpoints.MapGet("/", async context =>
                 {
