@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf.WellKnownTypes;
 using TopDownGameServer;
@@ -34,12 +35,17 @@ namespace TopDownGrpcGameServer
             return new Empty();
         }
 
-        public override Task<VectorsResponce> RetrieveEntites(Empty request, ServerCallContext context)
+        public override async Task RetrieveEntites(Empty request, IServerStreamWriter<VectorsResponce> responseStream, ServerCallContext context)
         {
-            var vectors = new VectorsResponce();
-            var positions = Logic.GetPositions();
-            vectors.Vectors.AddRange(positions.Select(p => new Vector() { X = p.Item1, Y = p.Item2 }));
-            return Task.FromResult(vectors);
+            while (true)
+            {
+                var vectors = new VectorsResponce();
+                var positions = Logic.GetPositions();
+                vectors.Vectors.AddRange(positions.Select(p => new Vector() { X = p.Item1, Y = p.Item2 }));
+
+                await responseStream.WriteAsync(vectors);
+                await Task.Delay(TimeSpan.FromMilliseconds(16));
+            }
         }
     }
 }

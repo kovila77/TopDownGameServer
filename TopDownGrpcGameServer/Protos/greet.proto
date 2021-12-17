@@ -10,7 +10,7 @@ package topdown;
 service TopDownServer {
   // Sends a greeting
   rpc UpdateUserState (stream ControlStateRequest) returns (google.protobuf.Empty);
-  rpc RetrieveEntites (google.protobuf.Empty) returns (VectorsResponce);
+  rpc RetrieveEntites (google.protobuf.Empty) returns (stream VectorsResponce);
 }
 
 // The request message containing the user's name.
