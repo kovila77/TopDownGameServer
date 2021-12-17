@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Google.Protobuf.WellKnownTypes;
 
 namespace TopDownGrpcGameServer
 {
@@ -14,13 +15,25 @@ namespace TopDownGrpcGameServer
         {
             _logger = logger;
         }
-
-        public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+        public override async Task<HelloReply> SayHello(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
         {
-            return Task.FromResult(new HelloReply
+            await foreach (var request in requestStream.ReadAllAsync())
             {
-                Message = "Hello " + request.Name
-            });
+                _logger.LogInformation($"{request}");
+            }
+
+            return new HelloReply
+            {
+                Message = "Hello"
+            };
         }
+
+        //public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+        //{
+        //    return Task.FromResult(new HelloReply
+        //    {
+        //        Message = "Hello " + request.Name
+        //    });
+        //}
     }
 }

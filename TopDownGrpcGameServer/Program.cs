@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 
 namespace TopDownGrpcGameServer
@@ -21,6 +22,11 @@ namespace TopDownGrpcGameServer
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
+                    webBuilder.ConfigureKestrel(options =>
+                    {
+                        options.Listen(IPAddress.Any,
+                            Convert.ToInt32(5000));
+                    });
                     webBuilder.UseStartup<Startup>();
                 });
     }
