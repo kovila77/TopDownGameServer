@@ -11,6 +11,8 @@ namespace TopDownGameServer
     {
         private static Dictionary<string, Player> _players;
 
+        public static int State { get; private set; } = 1;
+
         public static void Initialize()
         {
             _players = new Dictionary<string, Player>();
