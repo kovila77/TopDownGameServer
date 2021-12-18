@@ -23,14 +23,13 @@ namespace TopDownGrpcGameServer
             await foreach (var request in requestStream.ReadAllAsync())
             {
                 Logic.UpdatePosition(
-                    request.Left,
-                    request.Right,
-                    request.Up,
-                    request.Down,
+                    request.DirX,
+                    request.DirY,
                     request.GlobalMousePosX,
                     request.GlobalMousePosY,
                     request.LeftMouse,
-                    request.RightMouse);
+                    request.RightMouse,
+                    request.InputId);
             }
             return new Empty();
         }
@@ -41,10 +40,10 @@ namespace TopDownGrpcGameServer
             {
                 var vectors = new VectorsResponce();
                 var positions = Logic.GetPositions();
-                vectors.Vectors.AddRange(positions.Select(p => new Vector() { X = p.Item1, Y = p.Item2 }));
+                vectors.Vectors.AddRange(positions.Select(p => new Vector() { LastInputId = p.Item1, X = p.Item2, Y = p.Item3 }));
 
                 await responseStream.WriteAsync(vectors);
-                await Task.Delay(TimeSpan.FromMilliseconds(16));
+                await Task.Delay(TimeSpan.FromMilliseconds(2));
             }
         }
     }

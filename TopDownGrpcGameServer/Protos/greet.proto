@@ -15,14 +15,13 @@ service TopDownServer {
 
 // The request message containing the user's name.
 message ControlStateRequest {
-    bool left = 1;
-    bool right = 2;
-    bool up = 3;
-    bool down = 4;
-    float globalMousePosX = 5;
-    float globalMousePosY = 6;
-    bool leftMouse = 7;
-    bool rightMouse = 8;
+    int32 dirX = 1;
+    int32 dirY = 2;
+    float globalMousePosX = 3;
+    float globalMousePosY = 4;
+    bool leftMouse = 5;
+    bool rightMouse = 6;
+    int32 inputId = 7;
 }
 
 message VectorsResponce {
@@ -30,6 +29,7 @@ message VectorsResponce {
 }
 
 message Vector {
+    int32 lastInputId = 1;
     float X = 2;
     float Y = 3;
 }
