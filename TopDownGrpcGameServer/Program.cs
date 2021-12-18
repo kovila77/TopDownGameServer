@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using PostgresEntities.Entities;
 using RabbitMQ.Client;
 using TopDownGameServer;
+using TopDownGrpcGameServer.Services;
 
 namespace TopDownGrpcGameServer
 {
@@ -20,8 +21,13 @@ namespace TopDownGrpcGameServer
         public static void Main(string[] args)
         {
             Logic.Initialize();
-            SendToMainServerThisServer();
+            
+            PingService ps = new PingService();
+            ps.SendToMainServerThisServer();
+            ps.StartListen();
+
             CreateHostBuilder(args).Build().Run();
+            ps.EndListen();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
@@ -35,37 +41,5 @@ namespace TopDownGrpcGameServer
                     });
                     webBuilder.UseStartup<Startup>();
                 });
-
-        private static void SendToMainServerThisServer()
-        {
-            var factory = new ConnectionFactory()
-            {
-                HostName = ConfigurationManager.AppSettings.Get("RabbitMQHostName"),
-                UserName = ConfigurationManager.AppSettings.Get("RabbitMQUserName"),
-                Password = ConfigurationManager.AppSettings.Get("RabbitMQPassword"),
-                // Port = Convert.ToInt32(ConfigurationManager.AppSettings.Get("RabbitMQPort")) //tls port
-            };
-
-            //factory.Ssl.Enabled = true;
-            //factory.Ssl.ServerName = "NEWSPEED";
-
-            using (var connection = factory.CreateConnection())
-            using (var channel = connection.CreateModel())
-            {
-                channel.QueueDeclare(queue: ConfigurationManager.AppSettings.Get("RabbitMQServerQueue"), durable: false, exclusive: false, autoDelete: false, arguments: null);
-
-                Server thisServer = new Server()
-                {
-                    Address = ConfigurationManager.AppSettings.Get("GameServerIp"),
-                    Port = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort")),
-                    Status = 0,
-                };
-
-                string str = JsonConvert.SerializeObject(thisServer, Formatting.Indented);
-
-                var body = Encoding.UTF8.GetBytes(str);
-                channel.BasicPublish(exchange: "", routingKey: ConfigurationManager.AppSettings.Get("RabbitMQServerQueue"), basicProperties: null, body: body);
-            }
-        }
     }
 }
