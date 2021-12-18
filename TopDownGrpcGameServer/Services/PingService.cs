@@ -61,9 +61,9 @@ namespace TopDownGrpcGameServer.Services
                 );
                 _tcpListener.Start();
 
+                Console.WriteLine("Ping: waiting for a client to connect...");
                 do
                 {
-                    Console.WriteLine("Ping: waiting for a client to connect...");
                     TcpClient tcpClient = _tcpListener.AcceptTcpClient();
 
                     Task.Run(() =>
@@ -75,6 +75,7 @@ namespace TopDownGrpcGameServer.Services
                             //using BinaryReader br = new BinaryReader(tcpClient.GetStream());
                             using BinaryWriter bw = new BinaryWriter(tcpClient.GetStream());
                             bw.Write(Logic.State);
+                            Console.WriteLine("Pong");
                         }
                         catch (Exception e)
                         {
