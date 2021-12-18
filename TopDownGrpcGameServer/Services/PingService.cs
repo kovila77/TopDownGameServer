@@ -40,7 +40,7 @@ namespace TopDownGrpcGameServer.Services
                 {
                     Address = ConfigurationManager.AppSettings.Get("GameServerIp"),
                     Port = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort")),
-                    Status = 0,
+                    Status = 1,
                 };
 
                 string str = JsonConvert.SerializeObject(thisServer, Formatting.Indented);
