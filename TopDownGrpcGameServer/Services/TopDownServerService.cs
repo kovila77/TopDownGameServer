@@ -2,6 +2,8 @@ using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,7 +36,7 @@ namespace TopDownGrpcGameServer
             return new Empty();
         }
 
-        public override async Task RetrieveEntites(Empty request, IServerStreamWriter<VectorsResponce> responseStream, ServerCallContext context)
+        public override async Task RetrieveEntities(Empty request, IServerStreamWriter<VectorsResponce> responseStream, ServerCallContext context)
         {
             while (true)
             {
@@ -45,6 +47,22 @@ namespace TopDownGrpcGameServer
                 await responseStream.WriteAsync(vectors);
                 await Task.Delay(TimeSpan.FromMilliseconds(2));
             }
+        }
+
+        public async override Task<Map> GetMap(Empty request, ServerCallContext context)
+        {
+            string map = null;
+
+            try
+            {
+                map= File.ReadAllText(ConfigurationManager.AppSettings.Get("MapPath"));
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+
+            return new Map() { MapStr = map };
         }
     }
 }

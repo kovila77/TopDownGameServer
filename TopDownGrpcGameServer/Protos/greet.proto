@@ -10,7 +10,8 @@ package topdown;
 service TopDownServer {
   // Sends a greeting
   rpc UpdateUserState (stream ControlStateRequest) returns (google.protobuf.Empty);
-  rpc RetrieveEntites (google.protobuf.Empty) returns (stream VectorsResponce);
+  rpc RetrieveEntities (google.protobuf.Empty) returns (stream VectorsResponce);
+  rpc GetMap (google.protobuf.Empty) returns (Map);
 }
 
 // The request message containing the user's name.
@@ -32,4 +33,8 @@ message Vector {
     int32 lastInputId = 1;
     float X = 2;
     float Y = 3;
+}
+
+message Map {
+	string mapStr = 1;
 }
