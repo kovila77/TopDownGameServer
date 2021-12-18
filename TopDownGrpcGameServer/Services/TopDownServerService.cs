@@ -20,7 +20,7 @@ namespace TopDownGrpcGameServer
             _logger = logger;
         }
 
-        public override async Task<Empty> UpdateUserState(IAsyncStreamReader<ControlStateRequest> requestStream, ServerCallContext context)
+        public async override Task UpdateUserState(IAsyncStreamReader<ControlStateRequest> requestStream, IServerStreamWriter<PlayerDataResponse> responseStream, ServerCallContext context)
         {
             await foreach (var request in requestStream.ReadAllAsync())
             {
@@ -32,19 +32,19 @@ namespace TopDownGrpcGameServer
                     request.LeftMouse,
                     request.RightMouse,
                     request.InputId);
+                await responseStream.WriteAsync(new PlayerDataResponse() { LastInputId = 1, Position = new Vector2() { X = 2, Y = 3 } });
             }
-            return new Empty();
         }
 
-        public override async Task RetrieveEntities(Empty request, IServerStreamWriter<VectorsResponce> responseStream, ServerCallContext context)
+        public override async Task RetrieveEntities(Empty request, IServerStreamWriter<EntitiesResponse> responseStream, ServerCallContext context)
         {
             while (true)
             {
-                var vectors = new VectorsResponce();
+                var entitiesResponse = new EntitiesResponse();
                 var positions = Logic.GetPositions();
-                vectors.Vectors.AddRange(positions.Select(p => new Vector() { LastInputId = p.Item1, X = p.Item2, Y = p.Item3 }));
+                entitiesResponse.Entities.AddRange(positions.Select(p => new Entity() { Id = "p.Item1", Position = new Vector2() { X = p.Item2, Y = p.Item3 } }));
 
-                await responseStream.WriteAsync(vectors);
+                await responseStream.WriteAsync(entitiesResponse);
                 await Task.Delay(TimeSpan.FromMilliseconds(2));
             }
         }
@@ -55,7 +55,7 @@ namespace TopDownGrpcGameServer
 
             try
             {
-                map= File.ReadAllText(ConfigurationManager.AppSettings.Get("MapPath"));
+                map = File.ReadAllText(ConfigurationManager.AppSettings.Get("MapPath"));
             }
             catch (Exception e)
             {
@@ -64,5 +64,7 @@ namespace TopDownGrpcGameServer
 
             return new Map() { MapStr = map };
         }
+
+
     }
 }
