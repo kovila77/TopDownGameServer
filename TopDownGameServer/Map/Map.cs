@@ -3,14 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Xml;
 
 namespace TopDownGameServer
 {
     public class Map
     {
-        public List<RectangleF> _grounds = new List<RectangleF>();
-        public List<RectangleF> _walls = new List<RectangleF>();
+        public List<Ground> _grounds = new List<Ground>();
+        public List<Wall> _walls = new List<Wall>();
         public int _commandsCount = 0;
         public List<RectangleF> _spawnZones = new List<RectangleF>();
 

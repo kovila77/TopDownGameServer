@@ -24,15 +24,19 @@ namespace TopDownGrpcGameServer
         {
             await foreach (var request in requestStream.ReadAllAsync())
             {
-                Logic.UpdatePosition(
+                var _player = Logic.UpdatePosition(
                     request.DirX,
                     request.DirY,
                     request.GlobalMousePosX,
                     request.GlobalMousePosY,
                     request.LeftMouse,
                     request.RightMouse,
-                    request.InputId);
-                await responseStream.WriteAsync(new PlayerDataResponse() { LastInputId = 1, Position = new Vector2() { X = 2, Y = 3 } });
+                    request.InputId,
+                    request.Id);
+                await responseStream.WriteAsync(new PlayerDataResponse() { 
+                    LastInputId = _player.LastInputId, 
+                    Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y } 
+                });
             }
         }
 
@@ -42,14 +46,17 @@ namespace TopDownGrpcGameServer
             {
                 var entitiesResponse = new EntitiesResponse();
                 var positions = Logic.GetPositions();
-                entitiesResponse.Entities.AddRange(positions.Select(p => new Entity() { Id = "p.Item1", Position = new Vector2() { X = p.Item2, Y = p.Item3 } }));
+                entitiesResponse.Entities.AddRange(positions.Select(p => new Entity() {
+                    Id = p.Item1, 
+                    Position = new Vector2() { X = p.Item2, Y = p.Item3 } 
+                }));
 
                 await responseStream.WriteAsync(entitiesResponse);
-                await Task.Delay(TimeSpan.FromMilliseconds(2));
+                await Task.Delay(TimeSpan.FromMilliseconds(16));
             }
         }
 
-        public async override Task<Map> GetMap(Empty request, ServerCallContext context)
+        public override async Task<Map> GetMap(Empty request, ServerCallContext context)
         {
             string map = null;
 
@@ -65,6 +72,22 @@ namespace TopDownGrpcGameServer
             return new Map() { MapStr = map };
         }
 
+        public override async Task<EntitiesResponse> GetEntities(Empty request, ServerCallContext context)
+        {
+            var entitiesResponse = new EntitiesResponse();
+            entitiesResponse.Entities.AddRange(Logic.Players.Select(p => new Entity()
+            {
+                Id = p.Key,
+                Team = p.Value.Team,
+                Position = new Vector2() { X = p.Value.Rectangle.Min.X, Y = p.Value.Rectangle.Min.Y }
+            }));
+            return entitiesResponse;
+        }
 
+        public override async Task<Entity> GetPlayerId(Empty request, ServerCallContext context)
+        {
+
+            return new Entity() { Id = Logic.GetPlayerId() };
+        }
     }
 }

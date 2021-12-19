@@ -12,7 +12,8 @@ service TopDownServer {
   rpc UpdateUserState (stream ControlStateRequest) returns (stream PlayerDataResponse);
   rpc RetrieveEntities (google.protobuf.Empty) returns (stream EntitiesResponse);
   rpc GetMap (google.protobuf.Empty) returns (Map);
-  rpc GetEntities (google.protobuf.Empty) returns (Map);
+  rpc GetPlayerId (google.protobuf.Empty) returns (Entity);
+  rpc GetEntities (google.protobuf.Empty) returns (EntitiesResponse);
 }
 
 // The request message containing the user's name.
@@ -24,6 +25,7 @@ message ControlStateRequest {
     bool leftMouse = 5;
     bool rightMouse = 6;
     int32 inputId = 7;
+    string id = 8;
 }
 
 message EntitiesResponse {

@@ -34,7 +34,7 @@ namespace TopDownGrpcGameServer.Services
             using (var connection = factory.CreateConnection())
             using (var channel = connection.CreateModel())
             {
-                channel.QueueDeclare(queue: ConfigurationManager.AppSettings.Get("RabbitMQServerQueue"), durable: false, exclusive: false, autoDelete: false, arguments: null);
+                //channel.QueueDeclare(queue: ConfigurationManager.AppSettings.Get("RabbitMQServerQueue"), durable: false, exclusive: false, autoDelete: false, arguments: null);
 
                 Server thisServer = new Server()
                 {
