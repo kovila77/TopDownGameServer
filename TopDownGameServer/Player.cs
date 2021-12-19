@@ -14,12 +14,16 @@ namespace TopDownGameServer
         public int GunType { get => _gunType; set => _gunType = value; }
         public int CurBulletsCount { get => _curBulletsCount; set => _curBulletsCount = value; }
         public int LastInputId { get; set; }
+        public bool Used { get; set; }
 
         public Player(
+            int team,
             Circle hitCircle,
             RectangleF rectangle = new RectangleF(),
             Vector2 speed = new Vector2()) : base(hitCircle, rectangle, speed)
         {
+            Used = false;
+            Team = team;
             var rand = new Random();
             _gunType = rand.Next(1, 4);
         }
