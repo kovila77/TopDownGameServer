@@ -8,46 +8,54 @@ package topdown;
 
 // The greeting service definition.
 service TopDownServer {
-  // Sends a greeting
-  rpc UpdateUserState (stream ControlStateRequest) returns (stream PlayerDataResponse);
-  rpc RetrieveEntities (google.protobuf.Empty) returns (stream EntitiesResponse);
-  rpc GetMap (google.protobuf.Empty) returns (Map);
-  rpc GetPlayerId (google.protobuf.Empty) returns (Entity);
-  rpc GetEntities (google.protobuf.Empty) returns (EntitiesResponse);
+	// Sends a greeting
+	rpc UpdateUserState (stream ControlStateRequest) returns (stream GameStateResponse);
+	rpc GetMap (google.protobuf.Empty) returns (Map);
+	rpc GetPlayerId (google.protobuf.Empty) returns (Entity);
+	rpc GetEntities (google.protobuf.Empty) returns (EntitiesResponse);
 }
 
 // The request message containing the user's name.
 message ControlStateRequest {
-    int32 dirX = 1;
-    int32 dirY = 2;
-    float globalMousePosX = 3;
-    float globalMousePosY = 4;
-    bool leftMouse = 5;
-    bool rightMouse = 6;
-    int32 inputId = 7;
-    string id = 8;
+	repeated PlayerMoveClient playerMove = 1;
 }
 
 message EntitiesResponse {
-    repeated Entity entities = 1;
+	repeated Entity entities = 1;
 }
 
-message PlayerDataResponse {
-    int32 lastInputId = 1;
-    Vector2 position = 2;
+message GameStateResponse {
+	repeated Entity entities = 1;
+	repeated PlayerMoveServer playerMoveServer = 2;
+}
+
+message PlayerMoveClient {
+	int32 dirX = 1;
+	int32 dirY = 2;
+	float globalMousePosX = 3;
+	float globalMousePosY = 4;
+	bool leftMouse = 5;
+	bool rightMouse = 6;
+	int32 inputId = 7;
+	string id = 8;
+}
+
+message PlayerMoveServer {
+	int32 lastInputId = 1;
+	Vector2 position = 2;
 }
 
 message Entity {
-    string id = 1;
-    int32 team = 2;
-    Vector2 position = 3;
+	string id = 1;
+	int32 team = 2;
+	Vector2 position = 3;
 }
 
 message Vector2 {
-    float X = 1;
-    float Y = 2;
+	float X = 1;
+	float Y = 2;
 }
 
 message Map {
-    string mapStr = 1;
+	string mapStr = 1;
 }
