@@ -17,7 +17,7 @@ service TopDownServer {
 
 // The request message containing the user's name.
 message ControlStateRequest {
-	repeated PlayerMoveClient playerMove = 1;
+	PlayerMoveClient playerMove = 1;
 }
 
 message EntitiesResponse {
@@ -26,7 +26,7 @@ message EntitiesResponse {
 
 message GameStateResponse {
 	repeated Entity entities = 1;
-	repeated PlayerMoveServer playerMoveServer = 2;
+	PlayerServerPosition playerServerPosition = 2;
 }
 
 message PlayerMoveClient {
@@ -36,12 +36,13 @@ message PlayerMoveClient {
 	float globalMousePosY = 4;
 	bool leftMouse = 5;
 	bool rightMouse = 6;
-	int32 inputId = 7;
-	string id = 8;
+	string id = 7;
+	int32 msDuration = 8;
+	int64 time = 9;
 }
 
-message PlayerMoveServer {
-	int32 lastInputId = 1;
+message PlayerServerPosition {
+	int64 time = 1;
 	Vector2 position = 2;
 }
 

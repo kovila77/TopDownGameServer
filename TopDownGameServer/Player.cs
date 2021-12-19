@@ -5,6 +5,18 @@ using System.Text;
 
 namespace TopDownGameServer
 {
+    public class Input
+    {
+        public int DirX { get; set; }
+        public int DirY { get; set; }
+        public float GlobalMousePosX { get; set; }
+        public float GlobalMousePosY { get; set; }
+        public bool LeftMouse { get; set; }
+        public bool RightMouse { get; set; }
+        public int SimulationTime { get; set; }
+        public long Time { get; set; }
+    }
+
     public class Player : Entity
     {
         private int _hp = Constants.PlayerMaxHp;
@@ -13,8 +25,9 @@ namespace TopDownGameServer
         public int Hp { get => _hp; set => _hp = value; }
         public int GunType { get => _gunType; set => _gunType = value; }
         public int CurBulletsCount { get => _curBulletsCount; set => _curBulletsCount = value; }
-        public int LastInputId { get; set; }
         public bool Used { get; set; }
+
+        public List<Input> Inputs { get; set; } = new List<Input>();
 
         public Player(
             int team,

@@ -11,7 +11,7 @@ namespace TopDownGameServer
         private readonly static Vector2 entitySize = new Vector2(20, 40);
         private readonly static float bulletSize = 20.0f;
         private readonly static float weaponLength = 12.0f;
-        private readonly static float maxMoveSpeed = 6.0f;
+        private readonly static float maxMoveSpeed = 0.5f;
         private readonly static float maxMoveSpeedWS = 3.0f;
         private readonly static float maxCameraOffset = 0.2f;
         private readonly static int playerMaxHp = 50;

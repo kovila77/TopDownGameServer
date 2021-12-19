@@ -5,6 +5,7 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
@@ -20,6 +21,11 @@ namespace TopDownGameServer
         private static Map Map { get; set; }
 
         private static Dictionary<string, List<(DateTime, Vector2)>> Positions;
+
+
+
+        public static DateTime startFrameTime = DateTime.Now;
+        private static TimeSpan _lastFrameDuration = TimeSpan.Zero;
 
 
         public static void Initialize()
@@ -43,6 +49,31 @@ namespace TopDownGameServer
                 Players.Add(guid2, CreatePlayer(new Vector2(x, y), 2));
                 Positions.Add(guid1, new List<(DateTime, Vector2)>());
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
+            }
+
+            UpdateGameState();
+        }
+
+        public static void UpdateGameState()
+        {
+            while (true)
+            {
+                _lastFrameDuration = DateTime.Now - startFrameTime;
+                startFrameTime = DateTime.Now;
+
+                lock (Players)
+                {
+                    foreach (var player in Players)
+                    {
+                        foreach (var input in player.Value.Inputs.OrderBy(x => x.Time))
+                        {
+                            UpdatePosition(player.Key, input);
+                        }
+                        player.Value.Inputs.Clear();
+                    }
+                }
+
+                Thread.Sleep(15);
             }
         }
 
@@ -73,29 +104,20 @@ namespace TopDownGameServer
                 new RectangleF(Vector2.Zero, Constants.EntitySize) + position);
         }
 
-        public static Player UpdatePosition(
-            int dirX,
-            int dirY,
-            float globalMousePosX,
-            float globalMousePosY,
-            bool leftMouse,
-            bool rightMouse,
-            int inputId,
-            string id)
+        public static void UpdatePosition(string pId, Input input)
         {
-            var dirrection = Vector2.Zero;
-            dirrection.X += dirX;
-            dirrection.Y += dirY;
-            if (dirrection.X != 0 && dirrection.Y != 0)
+            var direction = Vector2.Zero;
+            direction.X += input.DirX;
+            direction.Y += input.DirY;
+            if (direction.X != 0 && direction.Y != 0)
             {
-                dirrection.Normalize();
+                direction.Normalize();
             }
 
-            Players[id].Rectangle += dirrection * Constants.MaxMoveSpeed;
-            Players[id].LastInputId = inputId;
-            FixCollisions(Players[id]);
-            Positions[id].Add((DateTime.Now, Players[id].Rectangle.Min));
-            return Players[id];
+            // TODO assert (_lastFrameDuration < sum of all input.SimulationTime)
+            Players[pId].Rectangle += direction * Constants.MaxMoveSpeed * input.SimulationTime;
+            FixCollisions(Players[pId]);
+            Positions[pId].Add((DateTime.Now, Players[pId].Rectangle.Min));
         }
 
         public static void FixCollisions(Player player)
@@ -126,10 +148,10 @@ namespace TopDownGameServer
                 }
             }
         }
-   
+
         public static List<(string, float, float)> GetPositions()
         {
-            foreach(var plPositions in Positions)
+            foreach (var plPositions in Positions)
             {
                 plPositions.Value.RemoveAll(p => (DateTime.Now - p.Item1).TotalMilliseconds > 5000);
             }

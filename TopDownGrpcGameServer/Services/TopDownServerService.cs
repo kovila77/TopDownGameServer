@@ -22,31 +22,34 @@ namespace TopDownGrpcGameServer
 
         public async override Task UpdateUserState(IAsyncStreamReader<ControlStateRequest> requestStream, IServerStreamWriter<GameStateResponse> responseStream, ServerCallContext context)
         {
-            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-
             await foreach (var controlStateRequest in requestStream.ReadAllAsync())
             {
-
                 GameStateResponse gameStateResponse = new GameStateResponse();
-
-                gameStateResponse.PlayerMoveServer.AddRange(controlStateRequest.PlayerMove.Select(playerMoveClient =>
+                lock (Logic.Players)
                 {
-                    var _player = Logic.UpdatePosition(
-                        playerMoveClient.DirX,
-                        playerMoveClient.DirY,
-                        playerMoveClient.GlobalMousePosX,
-                        playerMoveClient.GlobalMousePosY,
-                        playerMoveClient.LeftMouse,
-                        playerMoveClient.RightMouse,
-                        playerMoveClient.InputId,
-                        playerMoveClient.Id);
-
-                    return new PlayerMoveServer()
+                    Logic.Players[controlStateRequest.PlayerMove.Id].Inputs.Add(new Input()
                     {
-                        LastInputId = _player.LastInputId,
-                        Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y }
+                        DirX = controlStateRequest.PlayerMove.DirX,
+                        DirY = controlStateRequest.PlayerMove.DirY,
+                        GlobalMousePosX = controlStateRequest.PlayerMove.GlobalMousePosX,
+                        GlobalMousePosY = controlStateRequest.PlayerMove.GlobalMousePosY,
+                        LeftMouse = controlStateRequest.PlayerMove.LeftMouse,
+                        RightMouse = controlStateRequest.PlayerMove.RightMouse,
+                        SimulationTime = controlStateRequest.PlayerMove.MsDuration,
+                        Time = controlStateRequest.PlayerMove.Time,
+                    });
+
+                    gameStateResponse.PlayerServerPosition = new PlayerServerPosition()
+                    {
+                        Time = Logic.startFrameTime.ToFileTime(),
+                        Position = new Vector2()
+                        {
+                            X = Logic.Players[controlStateRequest.PlayerMove.Id].Rectangle.Min.X,
+                            Y = Logic.Players[controlStateRequest.PlayerMove.Id].Rectangle.Min.Y
+                        }
                     };
-                }));
+                }
+
 
                 var positions = Logic.GetPositions();
                 gameStateResponse.Entities.AddRange(positions.Select(p => new Entity()
@@ -56,16 +59,6 @@ namespace TopDownGrpcGameServer
                 }));
 
                 await responseStream.WriteAsync(gameStateResponse);
-                
-                // Ask game "can send?"
-                //var something = Task.Run(() =>
-                //{
-                //   Thread.Sleep(TimeSpan.FromMilliseconds(16));
-                //   cancellationTokenSource.Cancel();
-                //});
-
-                //cancellationTokenSource.Token.WaitHandle.WaitOne();
-                await Task.Delay(TimeSpan.FromMilliseconds(16));
             }
         }
 
