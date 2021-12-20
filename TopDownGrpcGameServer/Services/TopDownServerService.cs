@@ -20,11 +20,10 @@ namespace TopDownGrpcGameServer
             _logger = logger;
         }
 
-        public async override Task UpdateUserState(IAsyncStreamReader<ControlStateRequest> requestStream, IServerStreamWriter<GameStateResponse> responseStream, ServerCallContext context)
+        public override async Task<Empty> SendUserState(IAsyncStreamReader<ControlStateRequest> requestStream, ServerCallContext context)
         {
             await foreach (var controlStateRequest in requestStream.ReadAllAsync())
             {
-                GameStateResponse gameStateResponse = new GameStateResponse();
                 lock (Logic.Players)
                 {
                     Logic.Players[controlStateRequest.PlayerMove.Id].Inputs.Add(new Input()
@@ -38,29 +37,102 @@ namespace TopDownGrpcGameServer
                         SimulationTime = controlStateRequest.PlayerMove.MsDuration,
                         Time = controlStateRequest.PlayerMove.Time,
                     });
-
-                    gameStateResponse.PlayerServerPosition = new PlayerServerPosition()
-                    {
-                        Time = Logic.startFrameTime.ToFileTime(),
-                        Position = new Vector2()
-                        {
-                            X = Logic.Players[controlStateRequest.PlayerMove.Id].Rectangle.Min.X,
-                            Y = Logic.Players[controlStateRequest.PlayerMove.Id].Rectangle.Min.Y
-                        }
-                    };
                 }
+            }
 
+            return new Empty();
+        }
 
-                var positions = Logic.GetPositions();
-                gameStateResponse.Entities.AddRange(positions.Select(p => new Entity()
+        public override async Task UpdateGameState(PlayerId request, IServerStreamWriter<GameStateResponse> responseStream, ServerCallContext context)
+        {
+            CancellationTokenSource cancellationTokenSource = Logic.canSendUserUpdate[request.Id];
+
+            while (true)
+            {
+                cancellationTokenSource.Token.WaitHandle.WaitOne();
+
+                try
                 {
-                    Id = p.Item1,
-                    Position = new Vector2() { X = p.Item2, Y = p.Item3 }
-                }));
+                    lock (responseStream)
+                    {
+                        if (context.CancellationToken.IsCancellationRequested){
+                            Logic.canSendUserUpdate.Remove(request.Id);
+                            break;
+                        }
 
-                await responseStream.WriteAsync(gameStateResponse);
+                        GameStateResponse gameStateResponse = new GameStateResponse();
+                        lock (Logic.Players)
+                        {
+                            gameStateResponse.PlayerServerPosition = new PlayerServerPosition()
+                            {
+                                Time = Logic.startFrameTime.ToFileTime(),
+                                Position = new Vector2()
+                                {
+                                    X = Logic.Players[request.Id].Rectangle.Min.X,
+                                    Y = Logic.Players[request.Id].Rectangle.Min.Y
+                                }
+                            };
+                        }
+
+                        // TODO lock positions
+                        var positions = Logic.GetPositions();
+                        gameStateResponse.Entities.AddRange(positions.Select(p => new Entity()
+                        {
+                            Id = p.Item1,
+                            Position = new Vector2() { X = p.Item2, Y = p.Item3 }
+                        }));
+
+                        responseStream.WriteAsync(gameStateResponse).Wait();
+                    }
+                }
+                catch (Exception exception)
+                {
+                    Console.WriteLine(exception);
+                }
             }
         }
+
+        //public async override Task UpdateUserState(IAsyncStreamReader<ControlStateRequest> requestStream, IServerStreamWriter<GameStateResponse> responseStream, ServerCallContext context)
+        //{
+        //    await foreach (var controlStateRequest in requestStream.ReadAllAsync())
+        //    {
+        //        GameStateResponse gameStateResponse = new GameStateResponse();
+        //        lock (Logic.Players)
+        //        {
+        //            Logic.Players[controlStateRequest.PlayerMove.Id].Inputs.Add(new Input()
+        //            {
+        //                DirX = controlStateRequest.PlayerMove.DirX,
+        //                DirY = controlStateRequest.PlayerMove.DirY,
+        //                GlobalMousePosX = controlStateRequest.PlayerMove.GlobalMousePosX,
+        //                GlobalMousePosY = controlStateRequest.PlayerMove.GlobalMousePosY,
+        //                LeftMouse = controlStateRequest.PlayerMove.LeftMouse,
+        //                RightMouse = controlStateRequest.PlayerMove.RightMouse,
+        //                SimulationTime = controlStateRequest.PlayerMove.MsDuration,
+        //                Time = controlStateRequest.PlayerMove.Time,
+        //            });
+
+        //            gameStateResponse.PlayerServerPosition = new PlayerServerPosition()
+        //            {
+        //                Time = Logic.startFrameTime.ToFileTime(),
+        //                Position = new Vector2()
+        //                {
+        //                    X = Logic.Players[controlStateRequest.PlayerMove.Id].Rectangle.Min.X,
+        //                    Y = Logic.Players[controlStateRequest.PlayerMove.Id].Rectangle.Min.Y
+        //                }
+        //            };
+        //        }
+
+
+        //        var positions = Logic.GetPositions();
+        //        gameStateResponse.Entities.AddRange(positions.Select(p => new Entity()
+        //        {
+        //            Id = p.Item1,
+        //            Position = new Vector2() { X = p.Item2, Y = p.Item3 }
+        //        }));
+
+        //        await responseStream.WriteAsync(gameStateResponse);
+        //    }
+        //}
 
         //public async override Task UpdateUserState(IAsyncStreamReader<ControlStateRequest> requestStream, IServerStreamWriter<PlayerDataResponse> responseStream, ServerCallContext context)
         //{
@@ -130,8 +202,12 @@ namespace TopDownGrpcGameServer
 
         public override async Task<Entity> GetPlayerId(Empty request, ServerCallContext context)
         {
+            // TODO lock
+            var id = Logic.GetPlayerId();
 
-            return new Entity() { Id = Logic.GetPlayerId() };
+            Logic.canSendUserUpdate.Add(id, new CancellationTokenSource());
+
+            return new Entity() { Id = id };
         }
     }
 }

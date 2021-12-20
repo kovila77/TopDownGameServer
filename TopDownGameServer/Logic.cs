@@ -12,6 +12,11 @@ using System.Xml.Serialization;
 
 namespace TopDownGameServer
 {
+    public class UpdateUserStateEventArgs : EventArgs
+    {
+        public string Id { get; set; }
+    }
+
     public static class Logic
     {
         public static Dictionary<string, Player> Players;
@@ -23,6 +28,10 @@ namespace TopDownGameServer
         private static Dictionary<string, List<(DateTime, Vector2)>> Positions;
 
 
+        //public delegate void UpdateUserStateDelegate(UpdateUserStateEventArgs e);
+        //public static event UpdateUserStateDelegate UpdateUserEvent;
+        public static Dictionary<string, CancellationTokenSource> canSendUserUpdate =
+            new Dictionary<string, CancellationTokenSource>();
 
         public static DateTime startFrameTime = DateTime.Now;
         private static TimeSpan _lastFrameDuration = TimeSpan.Zero;
@@ -58,11 +67,11 @@ namespace TopDownGameServer
         {
             while (true)
             {
-                _lastFrameDuration = DateTime.Now - startFrameTime;
-                startFrameTime = DateTime.Now;
 
                 lock (Players)
                 {
+                    _lastFrameDuration = DateTime.Now - startFrameTime;
+                    startFrameTime = DateTime.Now;
                     foreach (var player in Players)
                     {
                         foreach (var input in player.Value.Inputs.OrderBy(x => x.Time))
@@ -73,7 +82,16 @@ namespace TopDownGameServer
                     }
                 }
 
-                Thread.Sleep(15);
+                foreach (var player in Players)
+                {
+                    if (canSendUserUpdate.ContainsKey(player.Key))
+                    {
+                        canSendUserUpdate[player.Key].Cancel();
+                    }
+                }
+
+                var ty = 16 - (startFrameTime - DateTime.Now).TotalMilliseconds;
+                Thread.Sleep(Convert.ToInt32(ty));
             }
         }
 
