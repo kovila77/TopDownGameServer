@@ -14,6 +14,8 @@ namespace TopDownGameServer
     public static class Logic
     {
         public static Dictionary<string, Player> Players;
+        public static List<Bullet> Bullets;
+        private static int _bulletId;
 
         public static int State { get; private set; } = 1;
 
@@ -26,6 +28,7 @@ namespace TopDownGameServer
         {
             LoadMap(ConfigurationManager.AppSettings.Get("MapPath"));
             Players = new Dictionary<string, Player>();
+            Bullets = new List<Bullet>();
             Positions = new Dictionary<string, List<(DateTime, Vector2)>>();
 
             for (int i = 0; i < 4; i++)
@@ -44,6 +47,12 @@ namespace TopDownGameServer
                 Positions.Add(guid1, new List<(DateTime, Vector2)>());
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
             }
+            InitializeRound();
+        }
+
+        private static void InitializeRound()
+        {
+            _bulletId = 0;
         }
 
         public static string GetPlayerId()
@@ -76,10 +85,6 @@ namespace TopDownGameServer
         public static Player UpdatePosition(
             int dirX,
             int dirY,
-            float globalMousePosX,
-            float globalMousePosY,
-            bool leftMouse,
-            bool rightMouse,
             int inputId,
             string id)
         {
@@ -96,6 +101,98 @@ namespace TopDownGameServer
             FixCollisions(Players[id]);
             Positions[id].Add((DateTime.Now, Players[id].Rectangle.Min));
             return Players[id];
+        }
+
+        public static void CheckShoots(
+            float mousePosX,
+            float mousePosY,
+            bool leftMouseButPress,
+            bool rightMouseButPress,
+            string id)
+        {
+            if (leftMouseButPress)
+            {
+                //lock (Bullets)
+                //{
+                    CreateBullets(mousePosX, mousePosY, Players[id]);
+                //}
+            }
+        }
+
+        private static void CreateBullets(float mousePosX, float mousePosY, Player player)
+        {
+            if (player.CurBulletsCount != 0)
+            {
+                if ((DateTime.Now - player.LastShotTime).TotalSeconds >= player.Gun.ShootDelay)
+                {
+                    var mPos = new Vector2(mousePosX, mousePosY);
+                    player.CurBulletsCount--;
+                    player.LastShotTime = DateTime.Now;
+                    var angle = 0.0f;
+                    var rand = new Random();
+                    for (int i = 0; i < player.Gun.BulletsPerShot; i++)
+                    {
+                        if (player.Gun.BulletsPerShot != 1)
+                        {
+                            angle = ((float)rand.NextDouble() - 0.5f) / 2.0f;
+                        }
+                        Bullets.Add(Shoot(player.Rectangle.Center, mPos, angle, player));
+                    }
+                }
+            }
+            if (!player.IsReload && player.CurBulletsCount == 0)
+            {
+                player.IsReload = true;
+                player.StartReloadTime = DateTime.Now;
+            }
+            if (player.IsReload && (DateTime.Now - player.StartReloadTime).TotalSeconds > player.Gun.ReloadTime)
+            {
+                player.IsReload = false;
+                player.CurBulletsCount = player.Gun.Capacity;
+            }
+        }
+
+        private static Bullet Shoot(Vector2 _from, Vector2 _to, float angle, Player player)
+        {
+            var shootDir = _to - _from;
+            shootDir.Normalize();
+            if (float.IsNaN(shootDir.X) || float.IsNaN(shootDir.Y))
+            {
+                shootDir = Vector2.One;
+            }
+            var cs = (float)Math.Cos(angle);
+            var sn = (float)Math.Sin(angle);
+            var tempSD = shootDir;
+            shootDir = new Vector2(tempSD.X * cs - tempSD.Y * sn, tempSD.X * sn + tempSD.Y * cs);
+            var startShootPos = _from + shootDir * Constants.WeaponLength;
+            var endShootPos = startShootPos + shootDir * player.Gun.MaxDistance;
+            var intersectedWall = RectangleF.Empty;
+            var intersectedWalls = Map._walls.FindAll(wall => wall.Rectangle.Intersects(startShootPos, endShootPos)).ToList();
+            if (intersectedWalls.Count != 0)
+            {
+                float lsMin = float.MaxValue;
+                foreach (var interWall in intersectedWalls)
+                {
+                    var ls = (interWall.Rectangle.Location - startShootPos).LengthSquared();
+                    if (ls < lsMin)
+                    {
+                        lsMin = ls;
+                        intersectedWall = interWall.Rectangle;
+                    }
+                }
+            }
+            var bullet = new Bullet(
+                new Circle(new Vector2(Constants.BulletSize / 2), Constants.BulletSize / 2),
+                player.Gun.BulletDamage, 
+                player.Gun.BulletSpeed,
+                intersectedWall,
+                new RectangleF(startShootPos, startShootPos + new Vector2(Constants.BulletSize)) - new Vector2(Constants.BulletSize / 2)
+                );
+            bullet.StartPoint = startShootPos;
+            bullet.EndPoint = endShootPos;
+            bullet.Team = player.Team;
+            bullet.Id = _bulletId++;
+            return bullet;
         }
 
         public static void FixCollisions(Player player)

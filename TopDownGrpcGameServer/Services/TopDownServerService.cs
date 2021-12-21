@@ -27,29 +27,47 @@ namespace TopDownGrpcGameServer
                 var _player = Logic.UpdatePosition(
                     request.DirX,
                     request.DirY,
+                    request.InputId,
+                    request.Id);
+
+                Logic.CheckShoots(
                     request.GlobalMousePosX,
                     request.GlobalMousePosY,
                     request.LeftMouse,
                     request.RightMouse,
-                    request.InputId,
                     request.Id);
-                await responseStream.WriteAsync(new PlayerDataResponse() { 
-                    LastInputId = _player.LastInputId, 
-                    Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y } 
+
+                await responseStream.WriteAsync(new PlayerDataResponse()
+                {
+                    LastInputId = _player.LastInputId,
+                    Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y }
                 });
             }
         }
 
-        public override async Task RetrieveEntities(Empty request, IServerStreamWriter<EntitiesResponse> responseStream, ServerCallContext context)
+        public override async Task RetrieveUpdate(Empty request, IServerStreamWriter<UpdateResponse> responseStream, ServerCallContext context)
         {
             while (true)
             {
-                var entitiesResponse = new EntitiesResponse();
+                var entitiesResponse = new UpdateResponse();
                 var positions = Logic.GetPositions();
-                entitiesResponse.Entities.AddRange(positions.Select(p => new Entity() {
-                    Id = p.Item1, 
-                    Position = new Vector2() { X = p.Item2, Y = p.Item3 } 
+                entitiesResponse.Entities.AddRange(positions.Select(p => new Entity()
+                {
+                    Id = p.Item1,
+                    Position = new Vector2() { X = p.Item2, Y = p.Item3 },
                 }));
+                //lock (Logic.Bullets)
+                //{
+                //    entitiesResponse.NewBullets.AddRange(Logic.Bullets.Select(b => new Bullet()
+                //    {
+                //        CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
+                //        StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
+                //        EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
+                //        Team = b.Team,
+                //        Speed = b.Speed,
+                //        Id = b.Id,
+                //    }));
+                //}
 
                 await responseStream.WriteAsync(entitiesResponse);
                 await Task.Delay(TimeSpan.FromMilliseconds(16));
@@ -72,9 +90,9 @@ namespace TopDownGrpcGameServer
             return new Map() { MapStr = map };
         }
 
-        public override async Task<EntitiesResponse> GetEntities(Empty request, ServerCallContext context)
+        public override async Task<UpdateResponse> GetEntities(Empty request, ServerCallContext context)
         {
-            var entitiesResponse = new EntitiesResponse();
+            var entitiesResponse = new UpdateResponse();
             entitiesResponse.Entities.AddRange(Logic.Players.Select(p => new Entity()
             {
                 Id = p.Key,
