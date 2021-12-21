@@ -56,18 +56,18 @@ namespace TopDownGrpcGameServer
                     Id = p.Item1,
                     Position = new Vector2() { X = p.Item2, Y = p.Item3 },
                 }));
-                //lock (Logic.Bullets)
-                //{
-                //    entitiesResponse.NewBullets.AddRange(Logic.Bullets.Select(b => new Bullet()
-                //    {
-                //        CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
-                //        StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
-                //        EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
-                //        Team = b.Team,
-                //        Speed = b.Speed,
-                //        Id = b.Id,
-                //    }));
-                //}
+                lock (Logic.Bullets)
+                {
+                    entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
+                    {
+                        CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
+                        StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
+                        EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
+                        Team = b.Team,
+                        Speed = b.Speed,
+                        Id = b.Id,
+                    }));
+                }
 
                 await responseStream.WriteAsync(entitiesResponse);
                 await Task.Delay(TimeSpan.FromMilliseconds(16));

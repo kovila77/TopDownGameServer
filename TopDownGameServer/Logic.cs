@@ -112,10 +112,10 @@ namespace TopDownGameServer
         {
             if (leftMouseButPress)
             {
-                //lock (Bullets)
-                //{
+                lock (Bullets)
+                {
                     CreateBullets(mousePosX, mousePosY, Players[id]);
-                //}
+                }
             }
         }
 
