@@ -20,6 +20,8 @@ namespace TopDownGameServer
         public static int CurrentRound { get; set; }
         public static DateTime StartRoundTime { get; set; }
         public static bool EndGame { get; set; }
+        private static bool reInit; 
+
 
         public static int State { get; private set; } = 1;
 
@@ -47,6 +49,7 @@ namespace TopDownGameServer
                 Positions.Add(guid1, new List<(DateTime, Vector2)>());
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
             }
+            reInit = false;
         }
 
         private static void InitializeRound()
@@ -341,6 +344,11 @@ namespace TopDownGameServer
                 else
                 {
                     EndGame = true;
+                    if (reInit)
+                    {
+                        Initialize();
+                        reInit = false;
+                    }
                 }
             }
         }
