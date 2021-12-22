@@ -105,11 +105,13 @@ namespace TopDownGameServer
 
         public static void CheckHitsAndDeadBullets()
         {
-            Bullets.ForEach(b => {
+            Bullets.ForEach(b =>
+            {
                 var centerPos = b.StartPoint + Vector2.Normalize(b.EndPoint - b.StartPoint)
                  * b.Speed * (float)(DateTime.Now - b.CreationTime).TotalSeconds;
-                b.Rectangle = new RectangleF(centerPos, centerPos);
-                });
+                var bHalfSize = new Vector2(Constants.BulletSize / 2);
+                b.Rectangle = new RectangleF(centerPos - bHalfSize, centerPos + bHalfSize);
+            });
             var removedBulletsId = Bullets.Where(
                 b => b.HitCircle.Intersects(b.IntersectingWall) ||
                 (float)(DateTime.Now - b.CreationTime).TotalSeconds >= b.MaxDistance / b.Speed).ToList();
@@ -121,8 +123,10 @@ namespace TopDownGameServer
                                           p.Value.HitCircle.Intersects(b.HitCircle)
                                           group (p.Key, b) by b into pb
                                           select pb.First()).ToList();
-            interPlayersAndBullets.ForEach(pb => { 
-                Players[pb.Item1].Hp -= pb.Item2.Damage; });
+            interPlayersAndBullets.ForEach(pb =>
+            {
+                Players[pb.Item1].Hp -= pb.Item2.Damage;
+            });
 
             if (Bullets.Count != 0)
             {
@@ -133,7 +137,7 @@ namespace TopDownGameServer
             removedBulletsId = removedBulletsId.Distinct().ToList();
             removedBulletsId.ForEach(rb => Bullets.Remove(rb));
 
-            
+
             //var deadPlayersId = new List<string>(_players.Where(p => p.Value.Hp <= 0).ToDictionary(p => p.Key).Keys);
             ///////////////////
             // Get removed bullets from server
