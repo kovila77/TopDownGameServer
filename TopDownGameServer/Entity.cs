@@ -13,9 +13,8 @@ namespace TopDownGameServer
         private Circle _hitCircle;
 
         public RectangleF Rectangle { get => _rectangle; set => _rectangle = value; }
-        public int Team1 { get => _team; set => _team = value; }
         public Circle HitCircle { get => _hitCircle + Rectangle.Location; set => _hitCircle = value; }
-        public int Team { get => Team1; set => Team1 = value; }
+        public int Team { get => _team; set => _team = value; }
 
         public Entity(Circle hitCircle, RectangleF rectangle = new RectangleF(), Vector2 speed = new Vector2())
         {

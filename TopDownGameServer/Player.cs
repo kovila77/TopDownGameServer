@@ -8,13 +8,16 @@ namespace TopDownGameServer
     public class Player : Entity
     {
         private int _hp = Constants.PlayerMaxHp;
-        private int _gunType;
+        private Gun _gun;
         private int _curBulletsCount;
         public int Hp { get => _hp; set => _hp = value; }
-        public int GunType { get => _gunType; set => _gunType = value; }
+        public Gun Gun { get => _gun; set => _gun = value; }
         public int CurBulletsCount { get => _curBulletsCount; set => _curBulletsCount = value; }
         public int LastInputId { get; set; }
         public bool Used { get; set; }
+        public DateTime LastShotTime { get; set; }
+        public bool IsReload { get; set; }
+        public DateTime StartReloadTime { get; set; }
 
         public Player(
             int team,
@@ -24,8 +27,14 @@ namespace TopDownGameServer
         {
             Used = false;
             Team = team;
+            LastShotTime = DateTime.Now;
+            IsReload = false;
+            StartReloadTime = DateTime.Now;
+            _hp = Constants.PlayerMaxHp;
             var rand = new Random();
-            _gunType = rand.Next(1, 4);
+            //_gun = new Gun(rand.Next(1, 4));
+            _gun = new Gun(2);
+            _curBulletsCount = _gun.Capacity;
         }
     }
 }
