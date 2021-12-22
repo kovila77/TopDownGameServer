@@ -20,8 +20,11 @@ namespace TopDownGrpcGameServer
     {
         public static void Main(string[] args)
         {
-            Logic.Initialize();
-            
+            Task.Run(() =>
+            {
+                Logic.Initialize();
+            });
+
             PingService ps = new PingService();
             ps.SendToMainServerThisServer();
             ps.StartListen();
