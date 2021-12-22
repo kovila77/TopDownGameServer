@@ -212,7 +212,7 @@ namespace TopDownGameServer
             var sn = (float)Math.Sin(angle);
             var tempSD = shootDir;
             shootDir = new Vector2(tempSD.X * cs - tempSD.Y * sn, tempSD.X * sn + tempSD.Y * cs);
-            var startShootPos = _from + shootDir * Constants.WeaponLength;
+            var startShootPos = _from;
             var endShootPos = startShootPos + shootDir * player.Gun.MaxDistance;
             var intersectedWall = RectangleF.Empty;
             var intersectedWalls = Map._walls.FindAll(wall => wall.Rectangle.Intersects(startShootPos, endShootPos)).ToList();
