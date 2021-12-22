@@ -5,6 +5,7 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
@@ -22,6 +23,11 @@ namespace TopDownGameServer
         private static Map Map { get; set; }
 
         private static Dictionary<string, List<(DateTime, Vector2)>> Positions;
+
+
+        private static int UpdateTimeMs = 100;
+        public static Dictionary<string, CancellationTokenSource> CanSendUpdateToUser =
+            new Dictionary<string, CancellationTokenSource>();
 
 
         public static void Initialize()
@@ -48,12 +54,48 @@ namespace TopDownGameServer
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
             }
             InitializeRound();
+
+            UpdateGameState();
         }
 
         private static void InitializeRound()
         {
             _bulletId = 0;
         }
+
+
+        public static void UpdateGameState()
+        {
+            while (true)
+            {
+                DateTime startFrameTime = DateTime.Now;
+
+                //lock (Players)
+                //{
+                //    foreach (var player in Players)
+                //    {
+                //        foreach (var input in player.Value.Inputs.OrderBy(x => x.Time))
+                //        {
+                //            UpdatePosition(player.Key, input);
+                //        }
+                //        player.Value.Inputs.Clear();
+                //    }
+                //}
+
+
+                // разрешаем каналу связи отправить обновление игрокам
+                foreach (var playerToken in CanSendUpdateToUser)
+                {
+                    playerToken.Value.Cancel();
+                }
+
+                var ty = Math.Max(0, UpdateTimeMs - (startFrameTime - DateTime.Now).TotalMilliseconds);
+                Thread.Sleep(Convert.ToInt32(ty));
+            }
+        }
+
+
+
 
         public static string GetPlayerId()
         {
@@ -101,6 +143,7 @@ namespace TopDownGameServer
             FixCollisions(Players[id]);
             Positions[id].Add((DateTime.Now, Players[id].Rectangle.Min));
             return Players[id];
+
         }
 
         public static void CheckHitsAndDeadBullets()
@@ -133,7 +176,7 @@ namespace TopDownGameServer
             removedBulletsId = removedBulletsId.Distinct().ToList();
             removedBulletsId.ForEach(rb => Bullets.Remove(rb));
 
-            
+
             //var deadPlayersId = new List<string>(_players.Where(p => p.Value.Hp <= 0).ToDictionary(p => p.Key).Keys);
             ///////////////////
             // Get removed bullets from server
@@ -154,11 +197,14 @@ namespace TopDownGameServer
             bool rightMouseButPress,
             string id)
         {
-            if (leftMouseButPress && Players[id].Hp > 0)
+            lock (Players[id])
             {
-                lock (Bullets)
+                if (leftMouseButPress && Players[id].Hp > 0)
                 {
-                    CreateBullets(mousePosX, mousePosY, Players[id]);
+                    lock (Bullets)
+                    {
+                        CreateBullets(mousePosX, mousePosY, Players[id]);
+                    }
                 }
             }
         }

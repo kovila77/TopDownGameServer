@@ -24,55 +24,75 @@ namespace TopDownGrpcGameServer
         {
             await foreach (var request in requestStream.ReadAllAsync())
             {
-                var _player = Logic.UpdatePosition(
-                    request.DirX,
-                    request.DirY,
-                    request.InputId,
-                    request.Id);
+                Player _player = null;
+                int li = -98989898;
+                Vector2 v2 = null;
+                //lock (Logic.Players)
+                {
+                    _player = Logic.UpdatePosition(
+                        request.DirX,
+                        request.DirY,
+                        request.InputId,
+                        request.Id);
 
-                Logic.CheckShoots(
-                    request.GlobalMousePosX,
-                    request.GlobalMousePosY,
-                    request.LeftMouse,
-                    request.RightMouse,
-                    request.Id);
+                    Logic.CheckShoots(
+                        request.GlobalMousePosX,
+                        request.GlobalMousePosY,
+                        request.LeftMouse,
+                        request.RightMouse,
+                        request.Id);
+
+                    li = _player.LastInputId;
+                    v2 = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y };
+                }
 
                 await responseStream.WriteAsync(new PlayerDataResponse()
                 {
-                    LastInputId = _player.LastInputId,
-                    Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y }
+                    LastInputId = li,
+                    Position = v2,
                 });
             }
         }
 
-        public override async Task RetrieveUpdate(Empty request, IServerStreamWriter<UpdateResponse> responseStream, ServerCallContext context)
+        public override async Task RetrieveUpdate(PlayerId request, IServerStreamWriter<UpdateResponse> responseStream, ServerCallContext context)
         {
-            while (true)
-            {
-                var entitiesResponse = new UpdateResponse();
-                var positions = Logic.GetPositions();
-                entitiesResponse.Entities.AddRange(positions.Select(p => new Entity()
-                {
-                    Id = p.Item1,
-                    Position = new Vector2() { X = p.Item2, Y = p.Item3 },
-                    IsDead = p.Item4,
-                }));
-                lock (Logic.Bullets)
-                {
-                    Logic.CheckHitsAndDeadBullets();
-                    entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
-                    {
-                        CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
-                        StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
-                        EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
-                        Team = b.Team,
-                        Speed = b.Speed,
-                        Id = b.Id,
-                    }));
-                }
+            CancellationTokenSource cancellationTokenSource = Logic.CanSendUpdateToUser[request.Id];
 
-                await responseStream.WriteAsync(entitiesResponse);
-                await Task.Delay(TimeSpan.FromMilliseconds(16));
+            try
+            {
+                while (true)
+                {
+                    cancellationTokenSource.Token.WaitHandle.WaitOne();
+
+                    var entitiesResponse = new UpdateResponse();
+                    var positions = Logic.GetPositions();
+                    entitiesResponse.Entities.AddRange(positions.Select(p => new Entity()
+                    {
+                        Id = p.Item1,
+                        Position = new Vector2() { X = p.Item2, Y = p.Item3 },
+                        IsDead = p.Item4,
+                    }));
+                    //lock (Logic.Bullets) lock ( Logic.Players)
+                    {
+                        Logic.CheckHitsAndDeadBullets();
+                        entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
+                        {
+                            CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
+                            StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
+                            EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
+                            Team = b.Team,
+                            Speed = b.Speed,
+                            Id = b.Id,
+                        }));
+                    }
+
+                    responseStream.WriteAsync(entitiesResponse).Wait();
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return;
             }
         }
 
@@ -106,8 +126,12 @@ namespace TopDownGrpcGameServer
 
         public override async Task<Entity> GetPlayerId(Empty request, ServerCallContext context)
         {
+            var id = Logic.GetPlayerId();
 
-            return new Entity() { Id = Logic.GetPlayerId() };
+            Logic.CanSendUpdateToUser.Add(id, new CancellationTokenSource());
+
+            return new Entity() { Id = id };
+            //return new Entity() { Id = Logic.GetPlayerId() };
         }
     }
 }

@@ -11,7 +11,7 @@ package topdown;
 service TopDownServer {
   // Sends a greeting
   rpc UpdateUserState (stream ControlStateRequest) returns (stream PlayerDataResponse);
-  rpc RetrieveUpdate (google.protobuf.Empty) returns (stream UpdateResponse);
+  rpc RetrieveUpdate (PlayerId) returns (stream UpdateResponse);
   rpc GetMap (google.protobuf.Empty) returns (Map);
   rpc GetPlayerId (google.protobuf.Empty) returns (Entity);
   rpc GetEntities (google.protobuf.Empty) returns (UpdateResponse);
@@ -62,4 +62,8 @@ message Vector2 {
 
 message Map {
     string mapStr = 1;
+}
+
+message PlayerId {
+	string id = 1;
 }
