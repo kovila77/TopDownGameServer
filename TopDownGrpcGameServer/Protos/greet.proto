@@ -4,6 +4,7 @@ option csharp_namespace = "TopDownGrpcGameServer";
 
 import "google/protobuf/empty.proto"; 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 package topdown;
 
 
@@ -15,6 +16,7 @@ service TopDownServer {
   rpc GetMap (google.protobuf.Empty) returns (Map);
   rpc GetPlayerId (google.protobuf.Empty) returns (Entity);
   rpc GetEntities (google.protobuf.Empty) returns (UpdateResponse);
+  rpc SendGunType (GunType) returns (google.protobuf.Empty);
 }
 
 // The request message containing the user's name.
@@ -32,6 +34,15 @@ message ControlStateRequest {
 message UpdateResponse {
     repeated Entity entities = 1;
     repeated Bullet bullets = 2;
+    RoundResponse roundData = 3;
+}
+
+message RoundResponse {
+    int32 firstTeamScore = 1;
+    int32 secondTeamScore = 2;
+    int32 currentRound = 3;
+    bool isEndGame = 4;
+    google.protobuf.Duration roundTimeLeft = 5;
 }
 
 message PlayerDataResponse {
@@ -39,7 +50,8 @@ message PlayerDataResponse {
     Vector2 position = 2;
     float hpPercent = 3;
     float reloadPercent = 4;
-    string bulletsCount = 5;
+    int32 bulletsCount = 5;
+    int32 capacity = 6;
 }
 
 message Bullet {
@@ -49,6 +61,11 @@ message Bullet {
     int32 team = 4;
     float speed = 5;
     int32 id = 6;
+}
+
+message GunType {
+    string playerId = 1;
+    int32 type = 2;
 }
 
 message Entity {
