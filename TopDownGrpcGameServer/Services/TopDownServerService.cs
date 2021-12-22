@@ -40,7 +40,10 @@ namespace TopDownGrpcGameServer
                 await responseStream.WriteAsync(new PlayerDataResponse()
                 {
                     LastInputId = _player.LastInputId,
-                    Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y }
+                    Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y },
+                    HpPercent = _player.Hp < 0 ? 0 : (float)_player.Hp / (float)Constants.PlayerMaxHp,
+                    ReloadPercent = (float)(_player.IsReload ? (DateTime.Now - _player.StartReloadTime).TotalSeconds / _player.Gun.ReloadTime : 0),
+                    BulletsCount = $"{_player.CurBulletsCount}/{_player.Gun.Capacity}",
                 });
             }
         }

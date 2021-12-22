@@ -37,6 +37,9 @@ message UpdateResponse {
 message PlayerDataResponse {
     int32 lastInputId = 1;
     Vector2 position = 2;
+    float hpPercent = 3;
+    float reloadPercent = 4;
+    string bulletsCount = 5;
 }
 
 message Bullet {
