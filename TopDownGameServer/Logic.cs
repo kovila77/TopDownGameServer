@@ -105,11 +105,14 @@ namespace TopDownGameServer
 
         public static void CheckHitsAndDeadBullets()
         {
-            Bullets.ForEach(b => b.HitCircle = new Circle(b.StartPoint + Vector2.Normalize(b.EndPoint - b.StartPoint)
-                * b.Speed * 60 * (float)(DateTime.Now - b.CreationTime).TotalSeconds, b.HitCircle.Radius));
+            Bullets.ForEach(b => {
+                var centerPos = b.StartPoint + Vector2.Normalize(b.EndPoint - b.StartPoint)
+                 * b.Speed * (float)(DateTime.Now - b.CreationTime).TotalSeconds;
+                b.Rectangle = new RectangleF(centerPos, centerPos);
+                });
             var removedBulletsId = Bullets.Where(
                 b => b.HitCircle.Intersects(b.IntersectingWall) ||
-                (float)(DateTime.Now - b.CreationTime).TotalSeconds >= b.MaxDistance / (b.Speed * 60)).ToList();
+                (float)(DateTime.Now - b.CreationTime).TotalSeconds >= b.MaxDistance / b.Speed).ToList();
 
 
             var interPlayersAndBullets = (from p in Players
@@ -118,7 +121,8 @@ namespace TopDownGameServer
                                           p.Value.HitCircle.Intersects(b.HitCircle)
                                           group (p.Key, b) by b into pb
                                           select pb.First()).ToList();
-            interPlayersAndBullets.ForEach(pb => { Players[pb.Item1].Hp -= pb.Item2.Damage; });
+            interPlayersAndBullets.ForEach(pb => { 
+                Players[pb.Item1].Hp -= pb.Item2.Damage; });
 
             if (Bullets.Count != 0)
             {

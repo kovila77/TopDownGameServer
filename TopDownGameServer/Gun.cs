@@ -22,7 +22,7 @@ namespace TopDownGameServer
                     ReloadTime = 3;
                     ShootDelay = 0.6;
                     BulletDamage = 50;
-                    BulletSpeed = 25;
+                    BulletSpeed = 1500;
                     MaxDistance = 1000;
                     Capacity = 8;
                     BulletsPerShot = 1;
@@ -31,7 +31,7 @@ namespace TopDownGameServer
                     ReloadTime = 2;
                     ShootDelay = 0.2;
                     BulletDamage = 10;
-                    BulletSpeed = 20;
+                    BulletSpeed = 1200;
                     MaxDistance = 600;
                     Capacity = 20;
                     BulletsPerShot = 1;
@@ -40,7 +40,7 @@ namespace TopDownGameServer
                     ReloadTime = 1;
                     ShootDelay = 0.5;
                     BulletDamage = 10;
-                    BulletSpeed = 15;
+                    BulletSpeed = 900;
                     MaxDistance = 300;
                     Capacity = 4;
                     BulletsPerShot = 8;
