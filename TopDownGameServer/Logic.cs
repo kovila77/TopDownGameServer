@@ -88,7 +88,7 @@ namespace TopDownGameServer
             }
             _player.Value.Used = true;
 
-            if(Players.Where(p => p.Value.Used).Count() == 2)
+            if(Players.Where(p => p.Value.Used).Count() >= 2)
             {
                 lock (Players)
                 {

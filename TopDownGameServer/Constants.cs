@@ -16,7 +16,7 @@ namespace TopDownGameServer
         private readonly static float maxCameraOffset = 0.2f;
         private readonly static int playerMaxHp = 50;
         private readonly static int hpBarWidth = 300;
-        private readonly static int roundsCount = 2;
+        private readonly static int roundsCount = 10;
         private readonly static double roundTime = 180;
         private readonly static double startTime = 5;
 
