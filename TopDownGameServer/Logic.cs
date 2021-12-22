@@ -15,7 +15,11 @@ namespace TopDownGameServer
     {
         public static Dictionary<string, Player> Players;
         public static List<Bullet> Bullets;
-        private static int _bulletId;
+        private static int _bulletId; 
+        public static List<int> Rounds { get; set; } 
+        public static int CurrentRound { get; set; }
+        public static DateTime StartRoundTime { get; set; }
+        public static bool EndGame { get; set; }
 
         public static int State { get; private set; } = 1;
 
@@ -30,38 +34,67 @@ namespace TopDownGameServer
             Players = new Dictionary<string, Player>();
             Bullets = new List<Bullet>();
             Positions = new Dictionary<string, List<(DateTime, Vector2)>>();
+            Rounds = new List<int>(new[] { 0, 0 });
+            CurrentRound = 0;
+            EndGame = false;
 
             for (int i = 0; i < 4; i++)
             {
-                var rand = new Random();
-                var fZone = Map._spawnZones[0];
-                var sZone = Map._spawnZones[1];
-                var x = (float)(fZone.X + rand.NextDouble() * fZone.Width);
-                var y = (float)(fZone.Y + rand.NextDouble() * fZone.Height);
                 var guid1 = Guid.NewGuid().ToString();
                 var guid2 = Guid.NewGuid().ToString();
-                Players.Add(guid1, CreatePlayer(new Vector2(x, y), 1));
-                x = (float)(sZone.X + rand.NextDouble() * sZone.Width);
-                y = (float)(sZone.Y + rand.NextDouble() * sZone.Height);
-                Players.Add(guid2, CreatePlayer(new Vector2(x, y), 2));
+                Players.Add(guid1, CreatePlayer(new Vector2(0, 0), 1));
+                Players.Add(guid2, CreatePlayer(new Vector2(0, 0), 2));
                 Positions.Add(guid1, new List<(DateTime, Vector2)>());
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
             }
-            InitializeRound();
         }
 
         private static void InitializeRound()
         {
             _bulletId = 0;
+            StartRoundTime = DateTime.Now;
+            var rand = new Random();
+            var fZone = Map._spawnZones[0];
+            var sZone = Map._spawnZones[1];
+            foreach(var player in Players)
+            {
+                if (player.Value.Team == 1)
+                {
+                    player.Value.Rectangle = new RectangleF(Vector2.Zero, Constants.EntitySize) +
+                        new Vector2(
+                        (float)(fZone.X + rand.NextDouble() * fZone.Width),
+                        (float)(fZone.Y + rand.NextDouble() * fZone.Height));
+                }
+                else
+                {
+                    player.Value.Rectangle = new RectangleF(Vector2.Zero, Constants.EntitySize) + 
+                        new Vector2(
+                        (float)(sZone.X + rand.NextDouble() * sZone.Width),
+                        (float)(sZone.Y + rand.NextDouble() * sZone.Height));
+                }
+                player.Value.Hp = Constants.PlayerMaxHp;
+            }
         }
 
         public static string GetPlayerId()
         {
             var fTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 1);
             var sTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 2);
-            var _player = Players.Where(p => !p.Value.Used &&
-                (fTeamCount <= sTeamCount ? p.Value.Team == 1 : p.Value.Team == 2)).FirstOrDefault();
+            var _player = Players.FirstOrDefault(p => !p.Value.Used &&
+                (fTeamCount <= sTeamCount ? p.Value.Team == 1 : p.Value.Team == 2));
+            if (_player.Value is null)
+            {
+                return null;
+            }
             _player.Value.Used = true;
+
+            if(Players.Where(p => p.Value.Used).Count() == 1)
+            {
+                lock (Players)
+                {
+                    InitializeRound();
+                }
+            }
             return _player.Key;
         }
 
@@ -138,17 +171,6 @@ namespace TopDownGameServer
             removedBulletsId.ForEach(rb => Bullets.Remove(rb));
 
 
-            //var deadPlayersId = new List<string>(_players.Where(p => p.Value.Hp <= 0).ToDictionary(p => p.Key).Keys);
-            ///////////////////
-            // Get removed bullets from server
-            // Get dead players from server
-            //deadPlayersId.ForEach(pId => { GameData.GameObjects.Remove(_players[pId]); _players.Remove(pId); });
-            //if (!_players.ContainsValue(Player))
-            //{
-            //
-            //    _dead = true;
-            //    // Set to Player texture of Ghost
-            //}
         }
 
         public static void CheckShoots(
@@ -280,6 +302,47 @@ namespace TopDownGameServer
                 plPositions.Value.RemoveAll(p => (DateTime.Now - p.Item1).TotalMilliseconds > 5000);
             }
             return Players.Select(p => (p.Key, p.Value.Rectangle.Min.X, p.Value.Rectangle.Min.Y, p.Value.Hp <= 0)).ToList();
+        }
+
+        public static void CheckRound()
+        {
+            var roundEnd = false;
+            if (Players.Where(p => p.Value.Team == 2).All(p => p.Value.Hp <= 0))
+            {
+                Rounds[0]++;
+                roundEnd = true;
+            }
+            if (Players.Where(p => p.Value.Team == 1).All(p => p.Value.Hp <= 0))
+            {
+                Rounds[1]++;
+                roundEnd = true;
+            }
+            if ((DateTime.Now - StartRoundTime).TotalSeconds > Constants.RoundTime)
+            {
+                roundEnd = true;
+                var t1Count = Players.Where(p => p.Value.Team == 1).Count();
+                var t2Count = Players.Where(p => p.Value.Team == 2).Count();
+                if (t1Count != t2Count)
+                {
+                    Rounds[t1Count > t2Count ? 0 : 1]++;
+                }
+            }
+            if (roundEnd)
+            {
+                roundEnd = false;
+                CurrentRound++;
+                if (CurrentRound < Constants.RoundsCount)
+                {
+                    lock (Players)
+                    {
+                        InitializeRound();
+                    }
+                }
+                else
+                {
+                    EndGame = true;
+                }
+            }
         }
     }
 }

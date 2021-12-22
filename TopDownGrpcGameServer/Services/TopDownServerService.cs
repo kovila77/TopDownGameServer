@@ -43,7 +43,8 @@ namespace TopDownGrpcGameServer
                     Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y },
                     HpPercent = _player.Hp < 0 ? 0 : (float)_player.Hp / (float)Constants.PlayerMaxHp,
                     ReloadPercent = (float)(_player.IsReload ? (DateTime.Now - _player.StartReloadTime).TotalSeconds / _player.Gun.ReloadTime : 0),
-                    BulletsCount = $"{_player.CurBulletsCount}/{_player.Gun.Capacity}",
+                    BulletsCount = _player.CurBulletsCount,
+                    Capacity = _player.Gun.Capacity,
                 });
             }
         }
@@ -63,6 +64,7 @@ namespace TopDownGrpcGameServer
                 lock (Logic.Bullets)
                 {
                     Logic.CheckHitsAndDeadBullets();
+                    Logic.CheckRound();
                     entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
                     {
                         CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
@@ -73,6 +75,14 @@ namespace TopDownGrpcGameServer
                         Id = b.Id,
                     }));
                 }
+                entitiesResponse.RoundData = new RoundResponse()
+                {
+                    FirstTeamScore = Logic.Rounds[0],
+                    SecondTeamScore = Logic.Rounds[1],
+                    IsEndGame = Logic.EndGame,
+                    CurrentRound = Logic.CurrentRound,
+                    RoundTimeLeft = Duration.FromTimeSpan(TimeSpan.FromSeconds(Constants.RoundTime) - (DateTime.Now - Logic.StartRoundTime))
+                };
 
                 await responseStream.WriteAsync(entitiesResponse);
                 await Task.Delay(TimeSpan.FromMilliseconds(16));
@@ -109,8 +119,17 @@ namespace TopDownGrpcGameServer
 
         public override async Task<Entity> GetPlayerId(Empty request, ServerCallContext context)
         {
-
             return new Entity() { Id = Logic.GetPlayerId() };
+        }
+
+        public override async Task<Empty> SendGunType(GunType request, ServerCallContext context)
+        {
+            if (Logic.Players.ContainsKey(request.PlayerId))
+            {
+                Logic.Players[request.PlayerId].Gun = new Gun(request.Type);
+                Logic.Players[request.PlayerId].CurBulletsCount = Logic.Players[request.PlayerId].Gun.Capacity;
+            }
+            return new Empty();
         }
     }
 }
