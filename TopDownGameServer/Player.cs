@@ -30,6 +30,7 @@ namespace TopDownGameServer
             LastShotTime = DateTime.Now;
             IsReload = false;
             StartReloadTime = DateTime.Now;
+            _hp = Constants.PlayerMaxHp;
             var rand = new Random();
             //_gun = new Gun(rand.Next(1, 4));
             _gun = new Gun(2);

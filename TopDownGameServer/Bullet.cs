@@ -18,6 +18,7 @@ namespace TopDownGameServer
         public float Speed { get; set; }
         public DateTime CreationTime { get; set; }
         public int Id { get; set; }
+        public float MaxDistance { get; set; }
 
         public Bullet(
             Circle hitCircle,

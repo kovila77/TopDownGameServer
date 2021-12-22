@@ -103,6 +103,46 @@ namespace TopDownGameServer
             return Players[id];
         }
 
+        public static void CheckHitsAndDeadBullets()
+        {
+            Bullets.ForEach(b => b.HitCircle = new Circle(b.StartPoint + Vector2.Normalize(b.EndPoint - b.StartPoint)
+                * b.Speed * 60 * (float)(DateTime.Now - b.CreationTime).TotalSeconds, b.HitCircle.Radius));
+            var removedBulletsId = Bullets.Where(
+                b => b.HitCircle.Intersects(b.IntersectingWall) ||
+                (float)(DateTime.Now - b.CreationTime).TotalSeconds >= b.MaxDistance / (b.Speed * 60)).ToList();
+
+
+            var interPlayersAndBullets = (from p in Players
+                                          from b in Bullets
+                                          where p.Value.Team != b.Team && p.Value.Hp > 0 &&
+                                          p.Value.HitCircle.Intersects(b.HitCircle)
+                                          group (p.Key, b) by b into pb
+                                          select pb.First()).ToList();
+            interPlayersAndBullets.ForEach(pb => { Players[pb.Item1].Hp -= pb.Item2.Damage; });
+
+            if (Bullets.Count != 0)
+            {
+                var aa = (float)(DateTime.Now - Bullets[0].CreationTime).TotalSeconds;
+            }
+
+            removedBulletsId.AddRange(interPlayersAndBullets.Select(pb => pb.Item2));
+            removedBulletsId = removedBulletsId.Distinct().ToList();
+            removedBulletsId.ForEach(rb => Bullets.Remove(rb));
+
+            
+            //var deadPlayersId = new List<string>(_players.Where(p => p.Value.Hp <= 0).ToDictionary(p => p.Key).Keys);
+            ///////////////////
+            // Get removed bullets from server
+            // Get dead players from server
+            //deadPlayersId.ForEach(pId => { GameData.GameObjects.Remove(_players[pId]); _players.Remove(pId); });
+            //if (!_players.ContainsValue(Player))
+            //{
+            //
+            //    _dead = true;
+            //    // Set to Player texture of Ghost
+            //}
+        }
+
         public static void CheckShoots(
             float mousePosX,
             float mousePosY,
@@ -110,7 +150,7 @@ namespace TopDownGameServer
             bool rightMouseButPress,
             string id)
         {
-            if (leftMouseButPress)
+            if (leftMouseButPress && Players[id].Hp > 0)
             {
                 lock (Bullets)
                 {
@@ -183,7 +223,7 @@ namespace TopDownGameServer
             }
             var bullet = new Bullet(
                 new Circle(new Vector2(Constants.BulletSize / 2), Constants.BulletSize / 2),
-                player.Gun.BulletDamage, 
+                player.Gun.BulletDamage,
                 player.Gun.BulletSpeed,
                 intersectedWall,
                 new RectangleF(startShootPos, startShootPos + new Vector2(Constants.BulletSize)) - new Vector2(Constants.BulletSize / 2)
@@ -192,6 +232,7 @@ namespace TopDownGameServer
             bullet.EndPoint = endShootPos;
             bullet.Team = player.Team;
             bullet.Id = _bulletId++;
+            bullet.MaxDistance = player.Gun.MaxDistance;
             return bullet;
         }
 
@@ -223,14 +264,14 @@ namespace TopDownGameServer
                 }
             }
         }
-   
-        public static List<(string, float, float)> GetPositions()
+
+        public static List<(string, float, float, bool)> GetPositions()
         {
-            foreach(var plPositions in Positions)
+            foreach (var plPositions in Positions)
             {
                 plPositions.Value.RemoveAll(p => (DateTime.Now - p.Item1).TotalMilliseconds > 5000);
             }
-            return Players.Select(p => (p.Key, p.Value.Rectangle.Min.X, p.Value.Rectangle.Min.Y)).ToList();
+            return Players.Select(p => (p.Key, p.Value.Rectangle.Min.X, p.Value.Rectangle.Min.Y, p.Value.Hp <= 0)).ToList();
         }
     }
 }

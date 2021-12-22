@@ -55,9 +55,11 @@ namespace TopDownGrpcGameServer
                 {
                     Id = p.Item1,
                     Position = new Vector2() { X = p.Item2, Y = p.Item3 },
+                    IsDead = p.Item4,
                 }));
                 lock (Logic.Bullets)
                 {
+                    Logic.CheckHitsAndDeadBullets();
                     entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
                     {
                         CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
