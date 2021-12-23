@@ -57,8 +57,13 @@ namespace TopDownGrpcGameServer
             }
         }
 
-        public override async Task RetrieveUpdate(Empty request, IServerStreamWriter<UpdateResponse> responseStream, ServerCallContext context)
+        public override async Task RetrieveUpdate(PlayerId request, IServerStreamWriter<UpdateResponse> responseStream, ServerCallContext context)
         {
+            if (!Logic.Players.ContainsKey(request.Id))
+            {
+                throw new Exception("Unknown player id");
+            }
+
             try
             {
                 while (true)
@@ -120,8 +125,13 @@ namespace TopDownGrpcGameServer
             return new Map() { MapStr = map };
         }
 
-        public override async Task<UpdateResponse> GetEntities(Empty request, ServerCallContext context)
+        public override async Task<UpdateResponse> GetEntities(PlayerId request, ServerCallContext context)
         {
+            if (!Logic.Players.ContainsKey(request.Id))
+            {
+                throw new Exception("Unknown player id");
+            }
+
             var entitiesResponse = new UpdateResponse();
             entitiesResponse.Entities.AddRange(Logic.Players.Select(p => new Entity()
             {
