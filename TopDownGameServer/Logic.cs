@@ -23,6 +23,7 @@ namespace TopDownGameServer
         public static DateTime StartRoundTime { get; set; }
         public static bool EndGame { get; set; }
         private static bool reInit;
+        private static bool gameStarted;
 
         public static System.Timers.Timer EndTimer { get; set; }
 
@@ -36,6 +37,7 @@ namespace TopDownGameServer
 
         public static void Initialize()
         {
+            PingService.PingService.Status = 1;
             PingService.PingService.SendToMainServerThisServer(1);
             LoadMap(ConfigurationManager.AppSettings.Get("MapPath"));
             Players = new Dictionary<string, Player>();
@@ -50,6 +52,7 @@ namespace TopDownGameServer
             }
             EndTimer = new Timer() { AutoReset = false, Interval = 20000 };
             EndTimer.Elapsed += EndTimeCheck;
+            gameStarted = false;
 
             for (int i = 0; i < Constants.MaxPlayersCount / 2; i++)
             {
@@ -60,7 +63,7 @@ namespace TopDownGameServer
                 Positions.Add(guid1, new List<(DateTime, Vector2)>());
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
             }
-            reInit = false;
+            reInit = true;
             Console.WriteLine("New game started.");
         }
 
@@ -106,6 +109,7 @@ namespace TopDownGameServer
                     player.Value.Hp = Constants.PlayerMaxHp;
                 }
             }
+            gameStarted = true;
         }
 
         public static string GetPlayerId()
@@ -116,7 +120,7 @@ namespace TopDownGameServer
                 var sTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 2);
                 var _player = Players.FirstOrDefault(p => !p.Value.Used &&
                     (fTeamCount <= sTeamCount ? p.Value.Team == 1 : p.Value.Team == 2));
-                if (_player.Value is null || (DateTime.Now - StartRoundTime).TotalSeconds > 5)
+                if (_player.Value is null || (gameStarted && (DateTime.Now - StartRoundTime).TotalSeconds > 5))
                 {
                     return null;
                 }
