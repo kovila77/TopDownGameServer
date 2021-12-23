@@ -53,6 +53,7 @@ namespace TopDownGrpcGameServer
 
                     if (curGameCount != Logic.GamesCount)
                     {
+                        await Task.Delay(3000);
                         break;
                     }
                 }
@@ -125,6 +126,8 @@ namespace TopDownGrpcGameServer
                     };
 
                     await responseStream.WriteAsync(entitiesResponse);
+
+                    await Task.Delay(16);
 
                     if (endgame)
                     {
