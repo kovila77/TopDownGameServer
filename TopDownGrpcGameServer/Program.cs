@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 using PostgresEntities.Entities;
 using RabbitMQ.Client;
 using TopDownGameServer;
-using TopDownGrpcGameServer.Services;
+using PingService;
 
 namespace TopDownGrpcGameServer
 {
@@ -21,13 +21,10 @@ namespace TopDownGrpcGameServer
         public static void Main(string[] args)
         {
             Logic.Initialize();
-            
-            PingService ps = new PingService();
-            ps.SendToMainServerThisServer();
-            ps.StartListen();
+            PingService.PingService.StartListen();
 
             CreateHostBuilder(args).Build().Run();
-            ps.EndListen();
+            PingService.PingService.EndListen();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>

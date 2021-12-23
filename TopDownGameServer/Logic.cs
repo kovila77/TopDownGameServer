@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
+using PingService;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -6,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -22,6 +24,8 @@ namespace TopDownGameServer
         public static bool EndGame { get; set; }
         private static bool reInit;
 
+        public static System.Timers.Timer EndTimer { get; set; }
+
 
         public static int State { get; private set; } = 1;
 
@@ -32,6 +36,7 @@ namespace TopDownGameServer
 
         public static void Initialize()
         {
+            PingService.PingService.SendToMainServerThisServer(1);
             LoadMap(ConfigurationManager.AppSettings.Get("MapPath"));
             Players = new Dictionary<string, Player>();
             Bullets = new List<Bullet>();
@@ -39,8 +44,14 @@ namespace TopDownGameServer
             Rounds = new List<int>(new[] { 0, 0 });
             CurrentRound = 0;
             EndGame = false;
+            if (EndTimer is not null)
+            {
+                EndTimer.Elapsed -= EndTimeCheck;
+            }
+            EndTimer = new Timer() { AutoReset = false, Interval = 20000 };
+            EndTimer.Elapsed += EndTimeCheck;
 
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < Constants.MaxPlayersCount / 2; i++)
             {
                 var guid1 = Guid.NewGuid().ToString();
                 var guid2 = Guid.NewGuid().ToString();
@@ -50,10 +61,25 @@ namespace TopDownGameServer
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
             }
             reInit = false;
+            Console.WriteLine("New game started.");
+        }
+
+        private static void EndTimeCheck(object sender, ElapsedEventArgs e)
+        {
+            Initialize();
         }
 
         private static void InitializeRound()
         {
+            if (PingService.PingService.Status != 2)
+            {
+                PingService.PingService.Status = 2;
+                PingService.PingService.SendToMainServerThisServer(2);
+            }
+            if (!EndTimer.Enabled)
+            {
+                EndTimer.Start();
+            }
             _bulletId = 0;
             StartRoundTime = DateTime.Now;
             var rand = new Random();
@@ -75,7 +101,10 @@ namespace TopDownGameServer
                         (float)(sZone.X + rand.NextDouble() * sZone.Width),
                         (float)(sZone.Y + rand.NextDouble() * sZone.Height));
                 }
-                player.Value.Hp = Constants.PlayerMaxHp;
+                if (player.Value.Hp == int.MinValue)
+                {
+                    player.Value.Hp = Constants.PlayerMaxHp;
+                }
             }
         }
 
@@ -87,11 +116,12 @@ namespace TopDownGameServer
                 var sTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 2);
                 var _player = Players.FirstOrDefault(p => !p.Value.Used &&
                     (fTeamCount <= sTeamCount ? p.Value.Team == 1 : p.Value.Team == 2));
-                if (_player.Value is null)
+                if (_player.Value is null || (DateTime.Now - StartRoundTime).TotalSeconds > 5)
                 {
                     return null;
                 }
                 _player.Value.Used = true;
+                _player.Value.Hp = Constants.PlayerMaxHp;
 
                 if (Players.Where(p => p.Value.Used).Count() >= 2)
                 {
@@ -323,8 +353,8 @@ namespace TopDownGameServer
             if ((DateTime.Now - StartRoundTime).TotalSeconds > Constants.RoundTime)
             {
                 roundEnd = true;
-                var t1Count = Players.Where(p => p.Value.Team == 1).Count();
-                var t2Count = Players.Where(p => p.Value.Team == 2).Count();
+                var t1Count = Players.Where(p => p.Value.Team == 1 && p.Value.Hp > 0).Count();
+                var t2Count = Players.Where(p => p.Value.Team == 2 && p.Value.Hp > 0).Count();
                 if (t1Count != t2Count)
                 {
                     Rounds[t1Count > t2Count ? 0 : 1]++;

@@ -101,6 +101,12 @@ namespace TopDownGrpcGameServer
 
                     await responseStream.WriteAsync(entitiesResponse);
                     await Task.Delay(TimeSpan.FromMilliseconds(16));
+
+                    lock (Logic.EndTimer)
+                    {
+                        Logic.EndTimer.Stop();
+                        Logic.EndTimer.Start();
+                    }
                 }
             }
             catch (Exception e)
@@ -144,7 +150,8 @@ namespace TopDownGrpcGameServer
 
         public override async Task<Entity> GetPlayerId(Empty request, ServerCallContext context)
         {
-            return new Entity() { Id = Logic.GetPlayerId() };
+            var playerId = Logic.GetPlayerId();
+            return new Entity() { Id = string.IsNullOrEmpty(playerId) ? "" : playerId };
         }
 
         public override async Task<Empty> SendGunType(GunType request, ServerCallContext context)

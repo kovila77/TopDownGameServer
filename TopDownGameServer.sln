@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31829.152
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TopDownGameServer", "TopDownGameServer\TopDownGameServer.csproj", "{78313739-95DE-4FA2-A363-53D9742C4912}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TopDownGameServer", "TopDownGameServer\TopDownGameServer.csproj", "{78313739-95DE-4FA2-A363-53D9742C4912}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TopDownGrpcGameServer", "TopDownGrpcGameServer\TopDownGrpcGameServer.csproj", "{9737A4B7-EFA4-4CAB-A853-175FF84966EE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TopDownGrpcGameServer", "TopDownGrpcGameServer\TopDownGrpcGameServer.csproj", "{9737A4B7-EFA4-4CAB-A853-175FF84966EE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PingService", "PingService\PingService.csproj", "{D2BF6451-588B-4F15-AB1E-D3FC903D3F9E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{9737A4B7-EFA4-4CAB-A853-175FF84966EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9737A4B7-EFA4-4CAB-A853-175FF84966EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9737A4B7-EFA4-4CAB-A853-175FF84966EE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2BF6451-588B-4F15-AB1E-D3FC903D3F9E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2BF6451-588B-4F15-AB1E-D3FC903D3F9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2BF6451-588B-4F15-AB1E-D3FC903D3F9E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2BF6451-588B-4F15-AB1E-D3FC903D3F9E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
