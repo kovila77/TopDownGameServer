@@ -63,12 +63,19 @@ namespace TopDownGrpcGameServer.Services
         {
             Task.Run(() =>
             {
-
-                _tcpListener = new TcpListener(
-                    IPAddress.Any,
-                    Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort"))
-                );
-                _tcpListener.Start();
+                try
+                {
+                    _tcpListener = new TcpListener(
+                        IPAddress.Any,
+                        Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort"))
+                    );
+                    _tcpListener.Start();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    return;
+                }
 
                 Console.WriteLine("Ping: waiting for a client to connect...");
                 do
@@ -86,10 +93,12 @@ namespace TopDownGrpcGameServer.Services
                             using BinaryWriter bw = new BinaryWriter(tcpClient.GetStream());
                             bw.Write(Logic.State);
                             Console.WriteLine("Pong");
+                            tcpClient.Dispose();
                         }
                         catch (Exception e)
                         {
                             Console.WriteLine(e.Message);
+                            tcpClient.Dispose();
                         }
                     });
                 } while (true);

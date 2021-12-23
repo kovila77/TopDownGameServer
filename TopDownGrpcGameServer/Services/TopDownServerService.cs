@@ -22,70 +22,85 @@ namespace TopDownGrpcGameServer
 
         public async override Task UpdateUserState(IAsyncStreamReader<ControlStateRequest> requestStream, IServerStreamWriter<PlayerDataResponse> responseStream, ServerCallContext context)
         {
-            await foreach (var request in requestStream.ReadAllAsync())
+            try
             {
-                var _player = Logic.UpdatePosition(
-                    request.DirX,
-                    request.DirY,
-                    request.InputId,
-                    request.Id);
-
-                Logic.CheckShoots(
-                    request.GlobalMousePosX,
-                    request.GlobalMousePosY,
-                    request.LeftMouse,
-                    request.RightMouse,
-                    request.Id);
-
-                await responseStream.WriteAsync(new PlayerDataResponse()
+                await foreach (var request in requestStream.ReadAllAsync())
                 {
-                    LastInputId = _player.LastInputId,
-                    Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y },
-                    HpPercent = _player.Hp < 0 ? 0 : (float)_player.Hp / (float)Constants.PlayerMaxHp,
-                    ReloadPercent = (float)(_player.IsReload ? (DateTime.Now - _player.StartReloadTime).TotalSeconds / _player.Gun.ReloadTime : 0),
-                    BulletsCount = _player.CurBulletsCount,
-                    Capacity = _player.Gun.Capacity,
-                });
+                    var _player = Logic.UpdatePosition(
+                        request.DirX,
+                        request.DirY,
+                        request.InputId,
+                        request.Id);
+
+                    Logic.CheckShoots(
+                        request.GlobalMousePosX,
+                        request.GlobalMousePosY,
+                        request.LeftMouse,
+                        request.RightMouse,
+                        request.Id);
+
+                    await responseStream.WriteAsync(new PlayerDataResponse()
+                    {
+                        LastInputId = _player.LastInputId,
+                        Position = new Vector2() { X = _player.Rectangle.Min.X, Y = _player.Rectangle.Min.Y },
+                        HpPercent = _player.Hp < 0 ? 0 : (float)_player.Hp / (float)Constants.PlayerMaxHp,
+                        ReloadPercent = (float)(_player.IsReload ? (DateTime.Now - _player.StartReloadTime).TotalSeconds / _player.Gun.ReloadTime : 0),
+                        BulletsCount = _player.CurBulletsCount,
+                        Capacity = _player.Gun.Capacity,
+                    });
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
             }
         }
 
         public override async Task RetrieveUpdate(Empty request, IServerStreamWriter<UpdateResponse> responseStream, ServerCallContext context)
         {
-            while (true)
+            try
             {
-                var entitiesResponse = new UpdateResponse();
-                var positions = Logic.GetPositions();
-                entitiesResponse.Entities.AddRange(positions.Select(p => new Entity()
+                while (true)
                 {
-                    Id = p.Item1,
-                    Position = new Vector2() { X = p.Item2, Y = p.Item3 },
-                    IsDead = p.Item4,
-                }));
-                lock (Logic.Bullets)
-                {
-                    Logic.CheckHitsAndDeadBullets();
-                    Logic.CheckRound();
-                    entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
+                    var entitiesResponse = new UpdateResponse();
+                    var positions = Logic.GetPositions();
+                    entitiesResponse.Entities.AddRange(positions.Select(p => new Entity()
                     {
-                        CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
-                        StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
-                        EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
-                        Team = b.Team,
-                        Speed = b.Speed,
-                        Id = b.Id,
+                        Id = p.Item1,
+                        Position = new Vector2() { X = p.Item2, Y = p.Item3 },
+                        IsDead = p.Item4,
                     }));
-                }
-                entitiesResponse.RoundData = new RoundResponse()
-                {
-                    FirstTeamScore = Logic.Rounds[0],
-                    SecondTeamScore = Logic.Rounds[1],
-                    IsEndGame = Logic.EndGame,
-                    CurrentRound = Logic.CurrentRound,
-                    RoundTimeLeft = Duration.FromTimeSpan(TimeSpan.FromSeconds(Constants.RoundTime) - (DateTime.Now - Logic.StartRoundTime))
-                };
+                    lock (Logic.Bullets)
+                    {
+                        Logic.CheckHitsAndDeadBullets();
+                        Logic.CheckRound();
+                        entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
+                        {
+                            CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
+                            StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
+                            EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
+                            Team = b.Team,
+                            Speed = b.Speed,
+                            Id = b.Id,
+                        }));
+                    }
+                    entitiesResponse.RoundData = new RoundResponse()
+                    {
+                        FirstTeamScore = Logic.Rounds[0],
+                        SecondTeamScore = Logic.Rounds[1],
+                        IsEndGame = Logic.EndGame,
+                        CurrentRound = Logic.CurrentRound,
+                        RoundTimeLeft = Duration.FromTimeSpan(TimeSpan.FromSeconds(Constants.RoundTime) - (DateTime.Now - Logic.StartRoundTime))
+                    };
 
-                await responseStream.WriteAsync(entitiesResponse);
-                await Task.Delay(TimeSpan.FromMilliseconds(16));
+                    await responseStream.WriteAsync(entitiesResponse);
+                    await Task.Delay(TimeSpan.FromMilliseconds(16));
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
             }
         }
 
