@@ -22,15 +22,17 @@ namespace TopDownGrpcGameServer
 
         public async override Task UpdateUserState(IAsyncStreamReader<ControlStateRequest> requestStream, IServerStreamWriter<PlayerDataResponse> responseStream, ServerCallContext context)
         {
+            int curGameCount = Logic.GamesCount;
+
             try
             {
                 await foreach (var request in requestStream.ReadAllAsync())
                 {
                     var _player = Logic.UpdatePosition(
-                        request.DirX,
-                        request.DirY,
-                        request.InputId,
-                        request.Id);
+                    request.DirX,
+                    request.DirY,
+                    request.InputId,
+                    request.Id);
 
                     Logic.CheckShoots(
                         request.GlobalMousePosX,
@@ -48,6 +50,11 @@ namespace TopDownGrpcGameServer
                         BulletsCount = _player.CurBulletsCount,
                         Capacity = _player.Gun.Capacity,
                     });
+
+                    if (curGameCount != Logic.GamesCount)
+                    {
+                        break;
+                    }
                 }
             }
             catch (Exception e)
@@ -58,15 +65,17 @@ namespace TopDownGrpcGameServer
 
         public override async Task RetrieveUpdate(PlayerId request, IServerStreamWriter<UpdateResponse> responseStream, ServerCallContext context)
         {
-            if (!Logic.Players.ContainsKey(request.Id))
+            lock (Logic.Players)
             {
-                throw new Exception("Unknown player id");
+                if (!Logic.Players.ContainsKey(request.Id))
+                {
+                    throw new Exception("Unknown player id");
+                }
             }
 
-            //lock (Logic.ActivePlayers)
-            //{
-            //    Logic.ActivePlayers.Add(Logic.Players[request.Id]);
-            //}
+            int curGameCount = Logic.GamesCount;
+            bool endgame = false;
+            var rounds = Logic.Rounds;
 
             try
             {
@@ -82,33 +91,53 @@ namespace TopDownGrpcGameServer
                     }));
                     lock (Logic.Bullets)
                     {
-                        Logic.CheckHitsAndDeadBullets();
-                        Logic.CheckRound();
-                        entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
+                        if (curGameCount == Logic.GamesCount)
                         {
-                            CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
-                            StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
-                            EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
-                            Team = b.Team,
-                            Speed = b.Speed,
-                            Id = b.Id,
-                        }));
+                            Logic.CheckHitsAndDeadBullets();
+                            Logic.CheckRound();
+                            entitiesResponse.Bullets.AddRange(Logic.Bullets.Select(b => new Bullet()
+                            {
+                                CreationTime = Timestamp.FromDateTime(b.CreationTime.ToUniversalTime()),
+                                StartPos = new Vector2() { X = b.StartPoint.X, Y = b.StartPoint.Y },
+                                EndPos = new Vector2() { X = b.EndPoint.X, Y = b.EndPoint.Y },
+                                Team = b.Team,
+                                Speed = b.Speed,
+                                Id = b.Id,
+                            }));
+                        }
                     }
+
+                    lock (Logic.Players)
+                    {
+                        if (!Logic.Players.ContainsKey(request.Id))
+                        {
+                            endgame = true;
+                        }
+                    }
+
                     entitiesResponse.RoundData = new RoundResponse()
                     {
-                        FirstTeamScore = Logic.Rounds[0],
-                        SecondTeamScore = Logic.Rounds[1],
-                        IsEndGame = Logic.EndGame,
-                        CurrentRound = Logic.CurrentRound,
+                        FirstTeamScore = rounds[0],
+                        SecondTeamScore = rounds[1],
+                        IsEndGame = endgame,
+                        CurrentRound = rounds[0] + rounds[1],
                         RoundTimeLeft = Duration.FromTimeSpan(TimeSpan.FromSeconds(Constants.RoundTime) - (DateTime.Now - Logic.StartRoundTime))
                     };
 
                     await responseStream.WriteAsync(entitiesResponse);
 
+                    if (endgame)
+                    {
+                        break;
+                    }
+
                     lock (Logic.EndTimer)
                     {
-                        Logic.EndTimer.Stop();
-                        Logic.EndTimer.Start();
+                        if (Logic.EndTimer.Enabled)
+                        {
+                            Logic.EndTimer.Stop();
+                            Logic.EndTimer.Start();
+                        }
                     }
                 }
             }

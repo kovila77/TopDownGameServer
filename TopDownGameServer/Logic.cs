@@ -6,10 +6,12 @@ using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using System.Xml;
 using System.Xml.Serialization;
+using Timer = System.Timers.Timer;
 
 namespace TopDownGameServer
 {
@@ -27,9 +29,8 @@ namespace TopDownGameServer
 
         public static System.Timers.Timer EndTimer { get; set; }
 
-        public static HashSet<Player> ActivePlayers { get; set; } = new HashSet<Player>();
-        public static int State { get; private set; } = 1;
 
+        public static int GamesCount { get; set; } = 0;
         private static Map Map { get; set; }
 
         private static Dictionary<string, List<(DateTime, Vector2)>> Positions;
@@ -37,6 +38,8 @@ namespace TopDownGameServer
 
         public static void Initialize()
         {
+            StartRoundTime = DateTime.MinValue;
+            GamesCount++;
             PingService.PingService.Status = 1;
             PingService.PingService.SendToMainServerThisServer(1);
             LoadMap(ConfigurationManager.AppSettings.Get("MapPath"));
@@ -108,6 +111,8 @@ namespace TopDownGameServer
                 {
                     player.Value.Hp = Constants.PlayerMaxHp;
                 }
+
+                player.Value.CurBulletsCount = player.Value.Gun.Capacity;
             }
             gameStarted = true;
         }
@@ -367,9 +372,14 @@ namespace TopDownGameServer
                     }
                 }
             }
+            else if (Players.Count(p => p.Value.Used && p.Value.Team == 1) == 0 ||
+                     Players.Count(p => p.Value.Used && p.Value.Team == 2) == 0)
+            {
+                InitializeRound();
+            }
             if (roundEnd)
             {
-                roundEnd = false;
+                Console.WriteLine(CurrentRound);
                 CurrentRound++;
                 if (CurrentRound < Constants.RoundsCount)
                 {
@@ -381,11 +391,7 @@ namespace TopDownGameServer
                 else
                 {
                     EndGame = true;
-                    if (reInit)
-                    {
                         Initialize();
-                        reInit = false;
-                    }
                 }
             }
         }
