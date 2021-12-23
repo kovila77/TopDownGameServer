@@ -41,7 +41,8 @@ namespace TopDownGrpcGameServer.Services
                     Server thisServer = new Server()
                     {
                         Address = ConfigurationManager.AppSettings.Get("GameServerIp"),
-                        Port = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort")),
+                        Port = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GrpcPort")),
+                        PingPort = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort")),
                         Status = 1,
                     };
 

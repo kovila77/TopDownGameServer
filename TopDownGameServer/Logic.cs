@@ -15,12 +15,12 @@ namespace TopDownGameServer
     {
         public static Dictionary<string, Player> Players;
         public static List<Bullet> Bullets;
-        private static int _bulletId; 
-        public static List<int> Rounds { get; set; } 
+        private static int _bulletId;
+        public static List<int> Rounds { get; set; }
         public static int CurrentRound { get; set; }
         public static DateTime StartRoundTime { get; set; }
         public static bool EndGame { get; set; }
-        private static bool reInit; 
+        private static bool reInit;
 
 
         public static int State { get; private set; } = 1;
@@ -59,7 +59,7 @@ namespace TopDownGameServer
             var rand = new Random();
             var fZone = Map._spawnZones[0];
             var sZone = Map._spawnZones[1];
-            foreach(var player in Players)
+            foreach (var player in Players)
             {
                 if (player.Value.Team == 1)
                 {
@@ -70,7 +70,7 @@ namespace TopDownGameServer
                 }
                 else
                 {
-                    player.Value.Rectangle = new RectangleF(Vector2.Zero, Constants.EntitySize) + 
+                    player.Value.Rectangle = new RectangleF(Vector2.Zero, Constants.EntitySize) +
                         new Vector2(
                         (float)(sZone.X + rand.NextDouble() * sZone.Width),
                         (float)(sZone.Y + rand.NextDouble() * sZone.Height));
@@ -81,24 +81,24 @@ namespace TopDownGameServer
 
         public static string GetPlayerId()
         {
-            var fTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 1);
-            var sTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 2);
-            var _player = Players.FirstOrDefault(p => !p.Value.Used &&
-                (fTeamCount <= sTeamCount ? p.Value.Team == 1 : p.Value.Team == 2));
-            if (_player.Value is null)
+            lock (Players)
             {
-                return null;
-            }
-            _player.Value.Used = true;
+                var fTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 1);
+                var sTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 2);
+                var _player = Players.FirstOrDefault(p => !p.Value.Used &&
+                    (fTeamCount <= sTeamCount ? p.Value.Team == 1 : p.Value.Team == 2));
+                if (_player.Value is null)
+                {
+                    return null;
+                }
+                _player.Value.Used = true;
 
-            if(Players.Where(p => p.Value.Used).Count() >= 2)
-            {
-                lock (Players)
+                if (Players.Where(p => p.Value.Used).Count() >= 2)
                 {
                     InitializeRound();
                 }
+                return _player.Key;
             }
-            return _player.Key;
         }
 
         private static void LoadMap(string path)

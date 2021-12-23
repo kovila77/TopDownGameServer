@@ -5,6 +5,7 @@
         public string Address { get; set; }
 
         public int Port { get; set; }
+        public int PingPort { get; set; }
 
         public int Status { get; set; }
 
