@@ -27,7 +27,7 @@ namespace TopDownGameServer
 
         public static System.Timers.Timer EndTimer { get; set; }
 
-
+        public static HashSet<Player> ActivePlayers { get; set; } = new HashSet<Player>();
         public static int State { get; private set; } = 1;
 
         private static Map Map { get; set; }
@@ -104,7 +104,7 @@ namespace TopDownGameServer
                         (float)(sZone.X + rand.NextDouble() * sZone.Width),
                         (float)(sZone.Y + rand.NextDouble() * sZone.Height));
                 }
-                if (player.Value.Hp == int.MinValue)
+                if (player.Value.Hp != int.MinValue)
                 {
                     player.Value.Hp = Constants.PlayerMaxHp;
                 }
@@ -127,7 +127,7 @@ namespace TopDownGameServer
                 _player.Value.Used = true;
                 _player.Value.Hp = Constants.PlayerMaxHp;
 
-                if (Players.Where(p => p.Value.Used).Count() >= 2)
+                if (Players.Count(p => p.Value.Used) >= 2)
                 {
                     InitializeRound();
                 }
@@ -344,24 +344,27 @@ namespace TopDownGameServer
         public static void CheckRound()
         {
             var roundEnd = false;
-            if (Players.Where(p => p.Value.Team == 2).All(p => p.Value.Hp <= 0))
+            if (StartRoundTime != DateTime.MinValue && (DateTime.Now - StartRoundTime).TotalSeconds > Constants.StartTime)
             {
-                Rounds[0]++;
-                roundEnd = true;
-            }
-            if (Players.Where(p => p.Value.Team == 1).All(p => p.Value.Hp <= 0))
-            {
-                Rounds[1]++;
-                roundEnd = true;
-            }
-            if ((DateTime.Now - StartRoundTime).TotalSeconds > Constants.RoundTime)
-            {
-                roundEnd = true;
-                var t1Count = Players.Where(p => p.Value.Team == 1 && p.Value.Hp > 0).Count();
-                var t2Count = Players.Where(p => p.Value.Team == 2 && p.Value.Hp > 0).Count();
-                if (t1Count != t2Count)
+                if (Players.Where(p => p.Value.Team == 2).All(p => p.Value.Hp <= 0))
                 {
-                    Rounds[t1Count > t2Count ? 0 : 1]++;
+                    Rounds[0]++;
+                    roundEnd = true;
+                }
+                if (Players.Where(p => p.Value.Team == 1).All(p => p.Value.Hp <= 0))
+                {
+                    Rounds[1]++;
+                    roundEnd = true;
+                }
+                if ((DateTime.Now - StartRoundTime).TotalSeconds > Constants.RoundTime)
+                {
+                    roundEnd = true;
+                    var t1Count = Players.Count(p => p.Value.Team == 1 && p.Value.Hp > 0);
+                    var t2Count = Players.Count(p => p.Value.Team == 2 && p.Value.Hp > 0);
+                    if (t1Count != t2Count)
+                    {
+                        Rounds[t1Count > t2Count ? 0 : 1]++;
+                    }
                 }
             }
             if (roundEnd)

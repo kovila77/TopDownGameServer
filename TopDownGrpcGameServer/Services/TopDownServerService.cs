@@ -53,7 +53,6 @@ namespace TopDownGrpcGameServer
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                throw;
             }
         }
 
@@ -63,6 +62,11 @@ namespace TopDownGrpcGameServer
             {
                 throw new Exception("Unknown player id");
             }
+
+            //lock (Logic.ActivePlayers)
+            //{
+            //    Logic.ActivePlayers.Add(Logic.Players[request.Id]);
+            //}
 
             try
             {
@@ -100,7 +104,6 @@ namespace TopDownGrpcGameServer
                     };
 
                     await responseStream.WriteAsync(entitiesResponse);
-                    await Task.Delay(TimeSpan.FromMilliseconds(16));
 
                     lock (Logic.EndTimer)
                     {
@@ -113,6 +116,12 @@ namespace TopDownGrpcGameServer
             {
                 Console.WriteLine(e);
             }
+
+            //lock (Logic.ActivePlayers)
+            //{
+            //    if (Logic.ActivePlayers.Contains(Logic.Players[request.Id]))
+            //        Logic.ActivePlayers.Remove(Logic.Players[request.Id]);
+            //}
         }
 
         public override async Task<Map> GetMap(Empty request, ServerCallContext context)
