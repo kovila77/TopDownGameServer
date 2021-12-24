@@ -83,6 +83,7 @@ namespace TopDownGameServer
                 Positions.Add(guid1, new List<(DateTime, Vector2)>());
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
             }
+            SetPlayersStartPositions();
             reInit = true;
             Console.WriteLine("New game started.");
         }
@@ -102,6 +103,20 @@ namespace TopDownGameServer
             }
             _bulletId = 0;
             StartRoundTime = DateTime.Now;
+            SetPlayersStartPositions();
+            foreach (var player in Players)
+            {
+                if (player.Value.Hp != int.MinValue)
+                {
+                    player.Value.Hp = Constants.PlayerMaxHp;
+                }
+                player.Value.CurBulletsCount = player.Value.Gun.Capacity;
+            }
+            gameStarted = true;
+        }
+
+        private static void SetPlayersStartPositions()
+        {
             var rand = new Random();
             var fZone = Map._spawnZones[0];
             var sZone = Map._spawnZones[1];
@@ -128,7 +143,6 @@ namespace TopDownGameServer
 
                 player.Value.CurBulletsCount = player.Value.Gun.Capacity;
             }
-            gameStarted = true;
         }
 
         public static string GetPlayerId()
