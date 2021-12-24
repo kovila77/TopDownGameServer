@@ -27,7 +27,9 @@ namespace TopDownGameServer
         private static bool reInit;
         private static bool gameStarted;
 
+        public static bool EndTimerWork { get; set; } = false;
         public static System.Timers.Timer EndTimer { get; set; }
+        public static Timer OnePlayerTimer { get; set; }
 
 
         public static int GamesCount { get; set; } = 0;
@@ -49,12 +51,27 @@ namespace TopDownGameServer
             Rounds = new List<int>(new[] { 0, 0 });
             CurrentRound = 0;
             EndGame = false;
-            if (EndTimer is not null)
+            EndTimer?.Dispose();
+            EndTimerWork = false;
+            EndTimer = new Timer(20000) { AutoReset = false };
+            EndTimer.Elapsed += (sender, args) =>
             {
-                EndTimer.Elapsed -= EndTimeCheck;
-            }
-            EndTimer = new Timer() { AutoReset = false, Interval = 20000 };
-            EndTimer.Elapsed += EndTimeCheck;
+                Initialize();
+            };
+            //EndTimer
+
+            OnePlayerTimer?.Dispose();
+            OnePlayerTimer = new Timer(60000) { AutoReset = false };
+            OnePlayerTimer.Elapsed += (sender, args) =>
+            {
+                lock (Bullets)
+                {
+                    if (Players.Count(p => p.Value.Used) < 2)
+                    {
+                        Initialize();
+                    }
+                }
+            };
             gameStarted = false;
 
             for (int i = 0; i < Constants.MaxPlayersCount / 2; i++)
@@ -70,11 +87,6 @@ namespace TopDownGameServer
             Console.WriteLine("New game started.");
         }
 
-        private static void EndTimeCheck(object sender, ElapsedEventArgs e)
-        {
-            Initialize();
-        }
-
         private static void InitializeRound()
         {
             if (PingService.PingService.Status != 2)
@@ -82,9 +94,11 @@ namespace TopDownGameServer
                 PingService.PingService.Status = 2;
                 PingService.PingService.SendToMainServerThisServer(2);
             }
-            if (!EndTimer.Enabled)
+            if (!EndTimerWork)
             {
                 EndTimer.Start();
+                OnePlayerTimer.Start();
+                EndTimerWork = true;
             }
             _bulletId = 0;
             StartRoundTime = DateTime.Now;
@@ -391,7 +405,7 @@ namespace TopDownGameServer
                 else
                 {
                     EndGame = true;
-                        Initialize();
+                    Initialize();
                 }
             }
         }

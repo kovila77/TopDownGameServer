@@ -93,6 +93,7 @@ namespace PingService
                             using BinaryWriter bw = new BinaryWriter(tcpClient.GetStream());
                             bw.Write(Status);
                             Console.WriteLine("Pong");
+                            tcpClient.Close();
                             tcpClient.Dispose();
                         }
                         catch (Exception e)

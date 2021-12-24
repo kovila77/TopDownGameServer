@@ -136,11 +136,8 @@ namespace TopDownGrpcGameServer
 
                     lock (Logic.EndTimer)
                     {
-                        if (Logic.EndTimer.Enabled)
-                        {
-                            Logic.EndTimer.Stop();
-                            Logic.EndTimer.Start();
-                        }
+                        Logic.EndTimer.Stop();
+                        Logic.EndTimer.Start();
                     }
                 }
             }
