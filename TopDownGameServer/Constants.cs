@@ -16,9 +16,10 @@ namespace TopDownGameServer
         private readonly static float maxCameraOffset = 0.2f;
         private readonly static int playerMaxHp = 50;
         private readonly static int hpBarWidth = 300;
-        private readonly static int roundsCount = 10;
+        private readonly static int roundsCount = 2;
         private readonly static double roundTime = 180;
         private readonly static double startTime = 5;
+        private readonly static int maxPlayersCount = 8;
 
         public static Vector2 EntitySize => entitySize;
         public static float BulletSize => bulletSize;
@@ -31,5 +32,6 @@ namespace TopDownGameServer
         public static int RoundsCount => roundsCount;
         public static double RoundTime => roundTime;
         public static double StartTime => startTime;
+        public static int MaxPlayersCount => maxPlayersCount;
     }
 }

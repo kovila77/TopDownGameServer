@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\PingService\PingService.csproj" />
     <ProjectReference Include="..\TopDownGameServer\TopDownGameServer.csproj" />
   </ItemGroup>
 

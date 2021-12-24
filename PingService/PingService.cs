@@ -10,15 +10,15 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PostgresEntities.Entities;
 using RabbitMQ.Client;
-using TopDownGameServer;
 
-namespace TopDownGrpcGameServer.Services
+namespace PingService
 {
-    public class PingService : IDisposable
+    public static class PingService
     {
-        private TcpListener _tcpListener;
+        private static TcpListener _tcpListener;
+        public static int Status { get; set; } = 1;
 
-        public void SendToMainServerThisServer()
+        public static void SendToMainServerThisServer(int status)
         {
             try
             {
@@ -43,7 +43,7 @@ namespace TopDownGrpcGameServer.Services
                         Address = ConfigurationManager.AppSettings.Get("GameServerIp"),
                         Port = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GrpcPort")),
                         PingPort = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort")),
-                        Status = 1,
+                        Status = status,
                     };
 
                     string str = JsonConvert.SerializeObject(thisServer, Formatting.Indented);
@@ -59,7 +59,7 @@ namespace TopDownGrpcGameServer.Services
             }
         }
 
-        public void StartListen()
+        public static void StartListen()
         {
             Task.Run(() =>
             {
@@ -91,8 +91,9 @@ namespace TopDownGrpcGameServer.Services
 
                             //using BinaryReader br = new BinaryReader(tcpClient.GetStream());
                             using BinaryWriter bw = new BinaryWriter(tcpClient.GetStream());
-                            bw.Write(Logic.State);
+                            bw.Write(Status);
                             Console.WriteLine("Pong");
+                            tcpClient.Close();
                             tcpClient.Dispose();
                         }
                         catch (Exception e)
@@ -105,13 +106,9 @@ namespace TopDownGrpcGameServer.Services
             });
         }
 
-        public void EndListen()
+        public static void EndListen()
         {
             _tcpListener.Stop();
-        }
-        public void Dispose()
-        {
-            EndListen();
         }
     }
 }

@@ -1,13 +1,17 @@
 ﻿using Microsoft.Xna.Framework;
+using PingService;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Xml;
 using System.Xml.Serialization;
+using Timer = System.Timers.Timer;
 
 namespace TopDownGameServer
 {
@@ -21,10 +25,14 @@ namespace TopDownGameServer
         public static DateTime StartRoundTime { get; set; }
         public static bool EndGame { get; set; }
         private static bool reInit;
+        private static bool gameStarted;
+
+        public static bool EndTimerWork { get; set; } = false;
+        public static System.Timers.Timer EndTimer { get; set; }
+        public static Timer OnePlayerTimer { get; set; }
 
 
-        public static int State { get; private set; } = 1;
-
+        public static int GamesCount { get; set; } = 0;
         private static Map Map { get; set; }
 
         private static Dictionary<string, List<(DateTime, Vector2)>> Positions;
@@ -32,6 +40,10 @@ namespace TopDownGameServer
 
         public static void Initialize()
         {
+            StartRoundTime = DateTime.MinValue;
+            GamesCount++;
+            PingService.PingService.Status = 1;
+            PingService.PingService.SendToMainServerThisServer(1);
             LoadMap(ConfigurationManager.AppSettings.Get("MapPath"));
             Players = new Dictionary<string, Player>();
             Bullets = new List<Bullet>();
@@ -39,8 +51,30 @@ namespace TopDownGameServer
             Rounds = new List<int>(new[] { 0, 0 });
             CurrentRound = 0;
             EndGame = false;
+            EndTimer?.Dispose();
+            EndTimerWork = false;
+            EndTimer = new Timer(20000) { AutoReset = false };
+            EndTimer.Elapsed += (sender, args) =>
+            {
+                Initialize();
+            };
+            //EndTimer
 
-            for (int i = 0; i < 4; i++)
+            OnePlayerTimer?.Dispose();
+            OnePlayerTimer = new Timer(60000) { AutoReset = false };
+            OnePlayerTimer.Elapsed += (sender, args) =>
+            {
+                lock (Bullets)
+                {
+                    if (Players.Count(p => p.Value.Used) < 2)
+                    {
+                        Initialize();
+                    }
+                }
+            };
+            gameStarted = false;
+
+            for (int i = 0; i < Constants.MaxPlayersCount / 2; i++)
             {
                 var guid1 = Guid.NewGuid().ToString();
                 var guid2 = Guid.NewGuid().ToString();
@@ -49,11 +83,23 @@ namespace TopDownGameServer
                 Positions.Add(guid1, new List<(DateTime, Vector2)>());
                 Positions.Add(guid2, new List<(DateTime, Vector2)>());
             }
-            reInit = false;
+            reInit = true;
+            Console.WriteLine("New game started.");
         }
 
         private static void InitializeRound()
         {
+            if (PingService.PingService.Status != 2)
+            {
+                PingService.PingService.Status = 2;
+                PingService.PingService.SendToMainServerThisServer(2);
+            }
+            if (!EndTimerWork)
+            {
+                EndTimer.Start();
+                OnePlayerTimer.Start();
+                EndTimerWork = true;
+            }
             _bulletId = 0;
             StartRoundTime = DateTime.Now;
             var rand = new Random();
@@ -75,8 +121,14 @@ namespace TopDownGameServer
                         (float)(sZone.X + rand.NextDouble() * sZone.Width),
                         (float)(sZone.Y + rand.NextDouble() * sZone.Height));
                 }
-                player.Value.Hp = Constants.PlayerMaxHp;
+                if (player.Value.Hp != int.MinValue)
+                {
+                    player.Value.Hp = Constants.PlayerMaxHp;
+                }
+
+                player.Value.CurBulletsCount = player.Value.Gun.Capacity;
             }
+            gameStarted = true;
         }
 
         public static string GetPlayerId()
@@ -87,13 +139,14 @@ namespace TopDownGameServer
                 var sTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 2);
                 var _player = Players.FirstOrDefault(p => !p.Value.Used &&
                     (fTeamCount <= sTeamCount ? p.Value.Team == 1 : p.Value.Team == 2));
-                if (_player.Value is null)
+                if (_player.Value is null || (gameStarted && (DateTime.Now - StartRoundTime).TotalSeconds > 5))
                 {
                     return null;
                 }
                 _player.Value.Used = true;
+                _player.Value.Hp = Constants.PlayerMaxHp;
 
-                if (Players.Where(p => p.Value.Used).Count() >= 2)
+                if (Players.Count(p => p.Value.Used) >= 2)
                 {
                     InitializeRound();
                 }
@@ -310,29 +363,37 @@ namespace TopDownGameServer
         public static void CheckRound()
         {
             var roundEnd = false;
-            if (Players.Where(p => p.Value.Team == 2).All(p => p.Value.Hp <= 0))
+            if (StartRoundTime != DateTime.MinValue && (DateTime.Now - StartRoundTime).TotalSeconds > Constants.StartTime)
             {
-                Rounds[0]++;
-                roundEnd = true;
-            }
-            if (Players.Where(p => p.Value.Team == 1).All(p => p.Value.Hp <= 0))
-            {
-                Rounds[1]++;
-                roundEnd = true;
-            }
-            if ((DateTime.Now - StartRoundTime).TotalSeconds > Constants.RoundTime)
-            {
-                roundEnd = true;
-                var t1Count = Players.Where(p => p.Value.Team == 1).Count();
-                var t2Count = Players.Where(p => p.Value.Team == 2).Count();
-                if (t1Count != t2Count)
+                if (Players.Where(p => p.Value.Team == 2).All(p => p.Value.Hp <= 0))
                 {
-                    Rounds[t1Count > t2Count ? 0 : 1]++;
+                    Rounds[0]++;
+                    roundEnd = true;
                 }
+                if (Players.Where(p => p.Value.Team == 1).All(p => p.Value.Hp <= 0))
+                {
+                    Rounds[1]++;
+                    roundEnd = true;
+                }
+                if ((DateTime.Now - StartRoundTime).TotalSeconds > Constants.RoundTime)
+                {
+                    roundEnd = true;
+                    var t1Count = Players.Count(p => p.Value.Team == 1 && p.Value.Hp > 0);
+                    var t2Count = Players.Count(p => p.Value.Team == 2 && p.Value.Hp > 0);
+                    if (t1Count != t2Count)
+                    {
+                        Rounds[t1Count > t2Count ? 0 : 1]++;
+                    }
+                }
+            }
+            else if (Players.Count(p => p.Value.Used && p.Value.Team == 1) == 0 ||
+                     Players.Count(p => p.Value.Used && p.Value.Team == 2) == 0)
+            {
+                InitializeRound();
             }
             if (roundEnd)
             {
-                roundEnd = false;
+                Console.WriteLine(CurrentRound);
                 CurrentRound++;
                 if (CurrentRound < Constants.RoundsCount)
                 {
@@ -344,11 +405,7 @@ namespace TopDownGameServer
                 else
                 {
                     EndGame = true;
-                    if (reInit)
-                    {
-                        Initialize();
-                        reInit = false;
-                    }
+                    Initialize();
                 }
             }
         }
