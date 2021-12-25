@@ -59,9 +59,9 @@ namespace PingService
             }
         }
 
-        public static void StartListen()
+        public static async Task StartListen()
         {
-            Task.Run(() =>
+            await Task.Run(() =>
             {
                 try
                 {
@@ -80,31 +80,34 @@ namespace PingService
                 Console.WriteLine("Ping: waiting for a client to connect...");
                 do
                 {
-                    TcpClient tcpClient = _tcpListener.AcceptTcpClient();
-
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            tcpClient.SendTimeout = 1000 * 15;
-                            tcpClient.ReceiveTimeout = 1000 * 15;
-
-                            //using BinaryReader br = new BinaryReader(tcpClient.GetStream());
-                            using BinaryWriter bw = new BinaryWriter(tcpClient.GetStream());
-                            bw.Write(Status);
-                            Console.WriteLine("Pong");
-                            tcpClient.Close();
-                            tcpClient.Dispose();
-                        }
-                        catch (Exception e)
-                        {
-                            Console.WriteLine(e.Message);
-                            tcpClient.Dispose();
-                        }
-                    });
+                    SendPong(_tcpListener.AcceptTcpClient());
                 } while (true);
             });
         }
+
+        private static async Task SendPong(TcpClient tcpClient)
+		{
+            await Task.Run(() =>
+            {
+                try
+                {
+                    tcpClient.SendTimeout = 1000 * 15;
+                    tcpClient.ReceiveTimeout = 1000 * 15;
+
+                    //using BinaryReader br = new BinaryReader(tcpClient.GetStream());
+                    using BinaryWriter bw = new BinaryWriter(tcpClient.GetStream());
+                    bw.Write(Status);
+                    Console.WriteLine("Pong");
+                    tcpClient.Close();
+                    tcpClient.Dispose();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e.Message);
+                    tcpClient.Dispose();
+                }
+            });
+        } 
 
         public static void EndListen()
         {
