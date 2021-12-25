@@ -20,4 +20,10 @@
     <ProjectReference Include="..\TopDownGameServer\TopDownGameServer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="map1.xml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

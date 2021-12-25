@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Timers;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PostgresEntities.Entities;
@@ -18,15 +19,33 @@ namespace PingService
         private static TcpListener _tcpListener;
         public static int Status { get; set; } = 1;
 
+        private static Timer Timer { get; set; }
+
+        private static object TimerLocker = new();
+
         public static void SendToMainServerThisServer(int status)
         {
             try
             {
+                Console.WriteLine($"Sending status: {status}");
+                lock (TimerLocker)
+				{
+                    if (Timer == null)
+                    {
+                        Timer = new Timer(20 * 1000) { AutoReset = false };
+                        Timer.Elapsed += (sender, e) => { SendToMainServerThisServer(Status); };
+                    }
+
+                    Timer.Stop();
+                    Timer.Start();
+                }
+                
+
                 var factory = new ConnectionFactory()
                 {
-                    HostName = ConfigurationManager.AppSettings.Get("RabbitMQHostName"),
-                    UserName = ConfigurationManager.AppSettings.Get("RabbitMQUserName"),
-                    Password = ConfigurationManager.AppSettings.Get("RabbitMQPassword"),
+                    HostName = Environment.GetEnvironmentVariable("TOPDOWN_RABBITMQ_HOSTNAME"),
+                    UserName = Environment.GetEnvironmentVariable("TOPDOWN_RABBITMQ_USERNAME"),
+                    Password = Environment.GetEnvironmentVariable("TOPDOWN_RABBITMQ_PASSWORD"),
                     // Port = Convert.ToInt32(ConfigurationManager.AppSettings.Get("RabbitMQPort")) //tls port
                 };
 
@@ -36,20 +55,20 @@ namespace PingService
                 using (var connection = factory.CreateConnection())
                 using (var channel = connection.CreateModel())
                 {
-                    channel.QueueDeclare(queue: ConfigurationManager.AppSettings.Get("RabbitMQServerQueue"), durable: true, exclusive: false, autoDelete: false, arguments: null);
+                    channel.QueueDeclare(queue: Environment.GetEnvironmentVariable("TOPDOWN_RABBITMQ_SERVERQUEUE"), durable: true, exclusive: false, autoDelete: false, arguments: null);
 
                     Server thisServer = new Server()
                     {
-                        Address = ConfigurationManager.AppSettings.Get("GameServerIp"),
-                        Port = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GrpcPort")),
-                        PingPort = Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort")),
+                        Address = Dns.GetHostName(),
+                        Port = Convert.ToInt32(Environment.GetEnvironmentVariable("TOPDOWN_GAMESERVER_GRPC_PORT")),
+                        PingPort = Convert.ToInt32(Environment.GetEnvironmentVariable("TOPDOWN_GAMESERVER_PING_PORT")),
                         Status = status,
                     };
 
                     string str = JsonConvert.SerializeObject(thisServer, Formatting.Indented);
 
                     var body = Encoding.UTF8.GetBytes(str);
-                    channel.BasicPublish(exchange: "", routingKey: ConfigurationManager.AppSettings.Get("RabbitMQServerQueue"), basicProperties: null, body: body);
+                    channel.BasicPublish(exchange: "", routingKey: Environment.GetEnvironmentVariable("TOPDOWN_RABBITMQ_SERVERQUEUE"), basicProperties: null, body: body);
                 }
 
             }
@@ -65,9 +84,12 @@ namespace PingService
             {
                 try
                 {
+                    var ipAddresses = Array.FindAll(
+                            Dns.GetHostEntry(Dns.GetHostName()).AddressList,
+                            a => a.AddressFamily == AddressFamily.InterNetwork);
                     _tcpListener = new TcpListener(
-                        IPAddress.Any,
-                        Convert.ToInt32(ConfigurationManager.AppSettings.Get("GameServerPingPort"))
+                        ipAddresses.First(),
+                        Convert.ToInt32(Environment.GetEnvironmentVariable("TOPDOWN_GAMESERVER_PING_PORT"))
                     );
                     _tcpListener.Start();
                 }
@@ -90,6 +112,12 @@ namespace PingService
         {
             try
             {
+                lock(TimerLocker)
+				{
+                    Timer.Stop();
+                    Timer.Start();
+                }
+                
                 tcpClient.SendTimeout = 1000 * 15;
                 tcpClient.ReceiveTimeout = 1000 * 15;
 

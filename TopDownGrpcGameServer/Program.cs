@@ -34,7 +34,7 @@ namespace TopDownGrpcGameServer
                     webBuilder.ConfigureKestrel(options =>
                     {
                         options.Listen(IPAddress.Any,
-                            Convert.ToInt32(ConfigurationManager.AppSettings.Get("GrpcPort")));
+                            Convert.ToInt32(Environment.GetEnvironmentVariable("TOPDOWN_GAMESERVER_GRPC_PORT")));
                     });
                     webBuilder.UseStartup<Startup>();
                 });
