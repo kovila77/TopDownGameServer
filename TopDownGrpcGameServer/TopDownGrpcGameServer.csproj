@@ -2,14 +2,18 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <UserSecretsId>5f9ed4ad-f739-4d03-bc3d-3810f0e98ab2</UserSecretsId>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+	  <DockerfileTag>europe-docker.pkg.dev/platinum-depot-336209/hello-repo/topdown-game-server:v0.2</DockerfileTag>
   </PropertyGroup>
 
-  <ItemGroup>
+	<ItemGroup>
     <Protobuf Include="Protos\greet.proto" GrpcServices="Server" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Grpc.AspNetCore" Version="2.34.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.11.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="RabbitMQ.Client" Version="6.2.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="6.0.0" />

@@ -153,7 +153,7 @@ namespace TopDownGameServer
                 var sTeamCount = Players.Count(p => p.Value.Used && p.Value.Team == 2);
                 var _player = Players.FirstOrDefault(p => !p.Value.Used &&
                     (fTeamCount <= sTeamCount ? p.Value.Team == 1 : p.Value.Team == 2));
-                if (_player.Value is null || (gameStarted && (DateTime.Now - StartRoundTime).TotalSeconds > 5))
+                if (_player.Value is null || (gameStarted && (DateTime.Now - StartRoundTime).TotalSeconds > Constants.StartTime))
                 {
                     return null;
                 }

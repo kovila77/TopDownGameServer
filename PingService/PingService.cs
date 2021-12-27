@@ -59,7 +59,7 @@ namespace PingService
 
                     Server thisServer = new Server()
                     {
-                        Address = Dns.GetHostName(),
+                        Address = Environment.GetEnvironmentVariable("TOPDOWN_GAMESERVER_ADRESS"),
                         Port = Convert.ToInt32(Environment.GetEnvironmentVariable("TOPDOWN_GAMESERVER_GRPC_PORT")),
                         PingPort = Convert.ToInt32(Environment.GetEnvironmentVariable("TOPDOWN_GAMESERVER_PING_PORT")),
                         Status = status,
